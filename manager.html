@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Material Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        :root {
+            --md-sys-color-primary: #6750A4;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #EADDFF;
+            --md-sys-color-on-primary-container: #21005D;
+            --md-sys-color-secondary-container: #E8DEF8;
+            --md-sys-color-on-secondary-container: #1D192B;
+            --md-sys-color-surface: #FEF7FF;
+            --md-sys-color-on-surface: #1D1B20;
+            --md-sys-color-surface-variant: #E7E0EC;
+            --md-sys-color-on-surface-variant: #49454F;
+            --md-sys-color-surface-container: #F3EDF7;
+            --md-sys-color-outline: #79747E;
+            --md-sys-color-error: #B3261E;
+            
+            --md-sys-shape-corner-extra-large: 28px;
+            --md-sys-shape-corner-large: 16px;
+            --md-sys-shape-corner-full: 9999px;
+            
+            --input-radius: var(--md-sys-shape-corner-full);
+            --input-bg: var(--md-sys-color-surface-variant);
+            --icon-color: rgba(0, 0, 0, 0.08);
+        }
+
+        body.theme-dark {
+            --md-sys-color-primary: #D0BCFF;
+            --md-sys-color-on-primary: #381E72;
+            --md-sys-color-primary-container: #4F378B;
+            --md-sys-color-on-primary-container: #EADDFF;
+            --md-sys-color-secondary-container: #4A4458;
+            --md-sys-color-on-secondary-container: #E8DEF8;
+            --md-sys-color-surface: #141218;
+            --md-sys-color-on-surface: #E6E0E9;
+            --md-sys-color-surface-variant: #49454F;
+            --md-sys-color-on-surface-variant: #CAC4D0;
+            --md-sys-color-surface-container: #211F26;
+            --md-sys-color-outline: #938F99;
+            --icon-color: rgba(255, 255, 255, 0.08);
+        }
+
+        body.theme-green {
+            --md-sys-color-primary: #2E7D32;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #A5D6A7;
+            --md-sys-color-on-primary-container: #1B5E20;
+            --md-sys-color-secondary-container: #C8E6C9;
+            --md-sys-color-on-secondary-container: #1B5E20;
+            --md-sys-color-surface: #F1F8E9;
+            --md-sys-color-on-surface: #1B5E20;
+            --md-sys-color-surface-variant: #DCEDC8;
+            --md-sys-color-on-surface-variant: #33691E;
+            --md-sys-color-surface-container: #E8F5E9;
+            --md-sys-color-outline: #81C784;
+            --icon-color: rgba(27, 94, 32, 0.1);
+        }
+
+        body.theme-blue {
+            --md-sys-color-primary: #1565C0;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #BBDEFB;
+            --md-sys-color-on-primary-container: #0D47A1;
+            --md-sys-color-secondary-container: #E3F2FD;
+            --md-sys-color-on-secondary-container: #0D47A1;
+            --md-sys-color-surface: #F3F8FF;
+            --md-sys-color-on-surface: #0D47A1;
+            --md-sys-color-surface-variant: #E3F2FD;
+            --md-sys-color-on-surface-variant: #1565C0;
+            --md-sys-color-surface-container: #E1F5FE;
+            --md-sys-color-outline: #90CAF9;
+            --icon-color: rgba(21, 101, 192, 0.1);
+        }
+
+        body.no-animations * {
+            animation-duration: 0s !important;
+            transition-duration: 0s !important;
+        }
+
+        body.square-inputs { --input-radius: var(--md-sys-shape-corner-large); }
+        body.input-bg-surface { --input-bg: var(--md-sys-color-surface); }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background-color: var(--md-sys-color-surface); 
+            color: var(--md-sys-color-on-surface); 
+            height: 100vh; width: 100vw; overflow: hidden; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* RIPPLE */
+        .m3-ripple { position: relative; overflow: hidden; }
+        .ripple-circle { position: absolute; border-radius: 50%; transform: scale(0); animation: ripple 0.4s linear; background-color: rgba(255, 255, 255, 0.3); pointer-events: none; }
+        body.theme-light .ripple-circle, body.theme-green .ripple-circle, body.theme-blue .ripple-circle { background-color: rgba(0, 0, 0, 0.1); }
+        @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+        /* ФОН ТОЛЬКО ДЛЯ ЧАТА */
+        #chat-bg { position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; display: none; }
+        .bg-icon-anim { position: absolute; color: var(--icon-color); animation: floatUp 15s linear infinite; user-select: none; font-size: 40px; }
+        @keyframes floatUp { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; } }
+        #chat-bg.paused .bg-icon-anim { animation-play-state: paused !important; }
+
+        /* ЭКРАНЫ */
+        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--md-sys-color-surface); z-index: 1; opacity: 0; transform: translateY(20px); pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .screen.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        #chat-screen { background: transparent; }
+
+        /* ВЕРХНЯЯ ПАНЕЛЬ */
+        .top-app-bar { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: transparent; z-index: 10; }
+        .top-app-bar h1 { font-size: 22px; font-weight: 400; }
+        .icon-btn { background: none; border: none; color: var(--md-sys-color-on-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 12px; border-radius: 50%; }
+        .icon-btn span { font-size: 24px; }
+
+        /* ЭКРАН ВХОДА */
+        #auth-screen { align-items: center; justify-content: center; padding: 20px; }
+        .auth-card { background: var(--md-sys-color-surface-container); padding: 32px 24px; border-radius: var(--md-sys-shape-corner-extra-large); width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; z-index: 2; }
+        .logo { width: 72px; height: 72px; background: var(--md-sys-color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-primary); font-size: 36px; font-weight: bold; margin: 0 auto 8px auto; }
+        .auth-title { font-size: 24px; font-weight: 500; text-align: center; margin-bottom: 8px; }
+        
+        .m3-textfield { position: relative; width: 100%; }
+        .m3-textfield input { width: 100%; padding: 16px; border-radius: var(--input-radius); border: 1px solid var(--md-sys-color-outline); background: var(--input-bg); color: var(--md-sys-color-on-surface); font-size: 16px; outline: none; transition: 0.2s; }
+        .m3-textfield input:focus { border: 2px solid var(--md-sys-color-primary); padding: 15px; }
+        
+        .btn-filled { width: 100%; padding: 16px; border-radius: var(--md-sys-shape-corner-full); background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border: none; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .btn-outlined { width: 100%; padding: 16px; border-radius: var(--md-sys-shape-corner-full); background: transparent; color: var(--md-sys-color-primary); border: 1px solid var(--md-sys-color-outline); font-size: 14px; font-weight: 500; cursor: pointer; }
+        
+        .auth-form { display: none; flex-direction: column; gap: 12px; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
+        .auth-form.active { display: flex; opacity: 1; transform: translateY(0); }
+
+        /* СПИСОК ЧАТОВ */
+        .chat-list { flex-grow: 1; overflow-y: auto; padding: 8px 16px 100px 16px; display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 2; }
+        .chat-item { display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-large); cursor: pointer; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; flex-shrink: 0; }
+
+        /* ПОИСК */
+        .search-header { display: flex; align-items: center; gap: 8px; padding: 8px 16px; }
+        .search-input { flex-grow: 1; padding: 12px 16px; border-radius: var(--md-sys-shape-corner-full); border: none; background: var(--md-sys-color-surface-container); font-size: 16px; color: var(--md-sys-color-on-surface); outline: none; }
+
+        /* НИЖНЯЯ НАВИГАЦИЯ */
+        .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: var(--md-sys-color-surface-container); display: flex; justify-content: space-around; align-items: center; z-index: 10; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; color: var(--md-sys-color-on-surface-variant); cursor: pointer; width: 80px; padding: 12px 0; position: relative; }
+        .nav-item.active { color: var(--md-sys-color-on-secondary-container); }
+        .nav-item.active .nav-indicator { background: var(--md-sys-color-secondary-container); width: 64px; height: 32px; border-radius: 16px; position: absolute; top: 8px; z-index: -1; }
+        .nav-item span.material-symbols-rounded { font-size: 24px; z-index: 1; }
+        .nav-item span.label { font-size: 12px; margin-top: 4px; font-weight: 500; z-index: 1; }
+
+        /* ЭКРАН ЧАТА */
+        .messages { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            position: relative; 
+            z-index: 2;
+            justify-content: flex-end; 
+        }
+        
+        .msg { 
+            max-width: 85%; 
+            min-width: 120px;
+            padding: 12px 16px; 
+            border-radius: var(--md-sys-shape-corner-large); 
+            font-size: 16px; 
+            word-break: break-word; 
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .msg.out { align-self: flex-end; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border-bottom-right-radius: 4px; }
+        .msg.in { align-self: flex-start; background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); border-bottom-left-radius: 4px; }
+
+        /* --- АНИМАЦИИ СООБЩЕНИЙ --- */
+        .anim-normal { animation: msgNormal 0.3s ease-out forwards; opacity: 0; transform: scale(0.8); }
+        @keyframes msgNormal { to { opacity: 1; transform: scale(1); } }
+
+        .anim-smooth { animation: msgSmooth 0.3s ease-out forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes msgSmooth { to { opacity: 1; transform: translateY(0); } }
+
+        .anim-bounce { animation: msgBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: scale(0.5); }
+        @keyframes msgBounce { to { opacity: 1; transform: scale(1); } }
+
+        .anim-fade { animation: msgFade 0.4s ease-out forwards; opacity: 0; }
+        @keyframes msgFade { to { opacity: 1; } }
+
+        /* МЕДИА (ЖЕСТКИЕ РАЗМЕРЫ) */
+        .msg img, .msg video { 
+            display: block;
+            width: 100%;         
+            max-width: 300px;    
+            height: 220px;       
+            object-fit: cover;   
+            border-radius: var(--md-sys-shape-corner-large); 
+            margin-top: 8px; 
+            background: var(--md-sys-color-surface-variant);
+            border: 1px solid rgba(0,0,0,0.05);
+            cursor: pointer; /* Указывает, что на картинку можно нажать */
+        }
+        .msg video.circle-video { 
+            width: 180px; 
+            height: 180px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            cursor: default;
+        }
+        
+        .loading-msg { display: flex; align-items: center; gap: 8px; font-style: italic; }
+        .spinner { width: 16px; height: 16px; border: 2px solid var(--md-sys-color-primary); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .input-area { padding: 8px 16px 24px 16px; background: var(--md-sys-color-surface); display: flex; gap: 8px; align-items: center; position: relative; z-index: 2; }
+        .input-area input { flex-grow: 1; border-radius: var(--input-radius); border: 1px solid var(--md-sys-color-outline); background: var(--input-bg); padding: 14px 20px; font-size: 16px; color: var(--md-sys-color-on-surface); outline: none; transition: 0.2s; }
+        .input-area input:focus { border: 2px solid var(--md-sys-color-primary); padding: 13px 19px; }
+
+        /* НАСТРОЙКИ И ПРОФИЛЬ */
+        .settings-list { padding: 16px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; position: relative; z-index: 2; }
+        .setting-group { display: flex; flex-direction: column; gap: 12px; }
+        .setting-group h3 { font-size: 14px; font-weight: 500; color: var(--md-sys-color-primary); margin-bottom: 4px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-large); }
+        .setting-item span { font-size: 16px; }
+        
+        /* M3 Switch */
+        .m3-switch { position: relative; display: inline-block; width: 52px; height: 32px; }
+        .m3-switch input { opacity: 0; width: 0; height: 0; }
+        .m3-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-sys-color-surface-variant); border: 2px solid var(--md-sys-color-outline); transition: .4s; border-radius: 32px; }
+        .m3-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 6px; bottom: 6px; background-color: var(--md-sys-color-outline); transition: .4s; border-radius: 50%; }
+        .m3-switch input:checked + .m3-slider { background-color: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
+        .m3-switch input:checked + .m3-slider:before { transform: translateX(20px); background-color: var(--md-sys-color-on-primary); width: 24px; height: 24px; left: 2px; bottom: 2px; }
+
+        .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .theme-btn { padding: 16px; border-radius: var(--md-sys-shape-corner-large); border: 2px solid transparent; cursor: pointer; text-align: center; font-weight: 500; }
+        .theme-btn.active { border-color: var(--md-sys-color-primary); }
+        .theme-btn[data-theme="light"] { background: #FEF7FF; color: #1D1B20; }
+        .theme-btn[data-theme="dark"] { background: #141218; color: #E6E0E9; }
+        .theme-btn[data-theme="green"] { background: #F1F8E9; color: #1B5E20; }
+        .theme-btn[data-theme="blue"] { background: #F3F8FF; color: #0D47A1; }
+
+        .anim-select { padding: 10px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline); background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-size: 14px; outline: none; }
+
+        /* МОДАЛЬНЫЕ ОКНА */
+        .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; align-items: flex-end; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { width: 100%; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s ease; max-height: 80vh; overflow-y: auto; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-handle { width: 32px; height: 4px; background: var(--md-sys-color-outline); border-radius: 2px; margin: 0 auto 24px auto; opacity: 0.4; }
+        
+        .attach-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+        .attach-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; background: var(--md-sys-color-surface-variant); border: none; padding: 16px; border-radius: var(--md-sys-shape-corner-large); color: var(--md-sys-color-on-surface); cursor: pointer; font-size: 14px; }
+        .attach-btn span.material-symbols-rounded { font-size: 32px; color: var(--md-sys-color-primary); }
+
+        /* --- ПОЛНОЭКРАННЫЙ ПРОСМОТР ФОТО (LIGHTBOX) --- */
+        #image-lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-out;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #image-lightbox.active {
+            display: flex;
+            opacity: 1;
+        }
+        #image-lightbox img {
+            max-width: 95vw;
+            max-height: 95vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            animation: zoomIn 0.3s ease;
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        #toast { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(50px); background: var(--md-sys-color-on-surface); color: var(--md-sys-color-surface); padding: 12px 24px; border-radius: var(--md-sys-shape-corner-full); z-index: 200; transition: 0.3s; opacity: 0; pointer-events: none; font-size: 14px; font-weight: 500; }
+        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    </style>
+</head>
+<body class="theme-light">
+
+    <div id="chat-bg"></div>
+
+    <!-- ПОЛНОЭКРАННЫЙ ПРОСМОТР ФОТО -->
+    <div id="image-lightbox" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="Фото">
+    </div>
+
+    <!-- ЭКРАН ВХОДА -->
+    <div id="auth-screen" class="screen active">
+        <div class="auth-card">
+            <div class="logo">M</div>
+            <div class="auth-title">Material Chat</div>
+            <div id="start-buttons" style="display:flex; flex-direction:column; gap:12px; width:100%;">
+                <button class="btn-filled m3-ripple" onclick="showForm(true)">Войти</button>
+                <button class="btn-outlined m3-ripple" onclick="showForm(false)">Зарегистрироваться</button>
+            </div>
+            <div class="auth-form" id="auth-form">
+                <div class="m3-textfield"><input type="text" id="input-tg" placeholder="Ник в Telegram"></div>
+                <div class="m3-textfield" id="chat-nick-field" style="display:none;"><input type="text" id="input-chat-nick" placeholder="Ник в чате"></div>
+                <div class="m3-textfield"><input type="password" id="input-pass" placeholder="Пароль"></div>
+                <div class="m3-textfield" id="code-field" style="display:none;"><input type="text" id="input-code" placeholder="Код из ТГ"></div>
+                <button class="btn-filled m3-ripple" id="btn-submit" onclick="submitAuth()">Войти</button>
+                <button class="btn-outlined m3-ripple" onclick="closeForm()">Назад</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ГЛАВНЫЙ ЭКРАН (ЧАТЫ) -->
+    <div id="main-screen" class="screen">
+        <div class="top-app-bar">
+            <h1>Чаты</h1>
+            <button class="icon-btn m3-ripple" onclick="switchScreen('search-screen', document.getElementById('nav-search'))">
+                <span class="material-symbols-rounded">search</span>
+            </button>
+        </div>
+        <div class="chat-list">
+            <div class="chat-item m3-ripple" onclick="openChat('saved', 'Избранное')">
+                <div class="avatar" style="background:var(--md-sys-color-secondary-container); color:var(--md-sys-color-on-secondary-container);"><span class="material-symbols-rounded">bookmark</span></div>
+                <div>
+                    <div style="font-weight:500; font-size:16px;">Избранное</div>
+                    <div style="font-size:14px; color:var(--md-sys-color-on-surface-variant);">Личное облако</div>
+                </div>
+            </div>
+            <div class="chat-item m3-ripple" onclick="openChat('global', 'Global Chat')">
+                <div class="avatar">G</div>
+                <div>
+                    <div style="font-weight:500; font-size:16px;">Global Chat</div>
+                    <div style="font-size:14px; color:var(--md-sys-color-on-surface-variant);">Общий чат</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <button class="nav-item active" id="nav-chats" onclick="switchScreen('main-screen', this)">
+                <div class="nav-indicator"></div>
+                <span class="material-symbols-rounded">chat</span>
+                <span class="label">Чаты</span>
+            </button>
+            <button class="nav-item" id="nav-profile" onclick="switchScreen('profile-screen', this)">
+                <span class="material-symbols-rounded">person</span>
+                <span class="label">Профиль</span>
+            </button>
+            <button class="nav-item" id="nav-settings" onclick="switchScreen('settings-screen', this)">
+                <span class="material-symbols-rounded">settings</span>
+                <span class="label">Настройки</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН ПОИСКА -->
+    <div id="search-screen" class="screen">
+        <div class="search-header">
+            <button class="icon-btn m3-ripple" onclick="switchScreen('main-screen', document.getElementById('nav-chats'))">
+                <span class="material-symbols-rounded">arrow_back</span>
+            </button>
+            <input type="text" class="search-input" placeholder="Поиск...">
+        </div>
+        <div style="padding: 20px; text-align: center; color: var(--md-sys-color-on-surface-variant);">
+            Ничего не найдено
+        </div>
+    </div>
+
+    <!-- ЭКРАН ПРОФИЛЯ -->
+    <div id="profile-screen" class="screen">
+        <div class="top-app-bar">
+            <button class="icon-btn m3-ripple" onclick="switchScreen('main-screen', document.getElementById('nav-chats'))">
+                <span class="material-symbols-rounded">arrow_back</span>
+            </button>
+            <h1 style="flex-grow:1; margin-left:12px;">Профиль</h1>
+        </div>
+        <div class="settings-list" style="align-items: center; text-align: center;">
+            <div class="avatar" style="width: 96px; height: 96px; font-size: 40px; margin-top: 20px;" id="profile-avatar">U</div>
+            <h2 style="margin-top: 16px; font-weight: 500;" id="profile-username">@user</h2>
+            <p style="color: var(--md-sys-color-on-surface-variant);">Пользователь Material Chat</p>
+            
+            <div style="width: 100%; margin-top: 32px;">
+                <div class="setting-item m3-ripple" onclick="logout()" style="color: var(--md-sys-color-error); justify-content: center;">
+                    <span style="margin-right: 8px; font-weight: 500;">Выйти из аккаунта</span>
+                    <span class="material-symbols-rounded">logout</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН НАСТРОЕК -->
+    <div id="settings-screen" class="screen">
+        <div class="top-app-bar">
+            <button class="icon-btn m3-ripple" onclick="switchScreen('main-screen', document.getElementById('nav-chats'))">
+                <span class="material-symbols-rounded">arrow_back</span>
+            </button>
+            <h1 style="flex-grow:1; margin-left:12px;">Настройки</h1>
+        </div>
+        <div class="settings-list">
+            
+            <div class="setting-group">
+                <h3>Тема оформления</h3>
+                <div class="theme-grid">
+                    <div class="theme-btn m3-ripple active" data-theme="light" onclick="setTheme('light')">Светлая</div>
+                    <div class="theme-btn m3-ripple" data-theme="dark" onclick="setTheme('dark')">Темная</div>
+                    <div class="theme-btn m3-ripple" data-theme="green" onclick="setTheme('green')">Зеленая</div>
+                    <div class="theme-btn m3-ripple" data-theme="blue" onclick="setTheme('blue')">Синяя</div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3>Анимации чата</h3>
+                <div class="setting-item">
+                    <span>Вид анимации</span>
+                    <select class="anim-select" id="select-msg-anim" onchange="changeMsgAnim()">
+                        <option value="normal">Скейл (Обычный)</option>
+                        <option value="smooth">Плавный переход (Снизу)</option>
+                        <option value="bounce">Скок (Пружина)</option>
+                        <option value="fade">Плавное проявление</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <span>Текст по буквам</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="toggle-text-anim" checked onchange="toggleTextAnim()">
+                        <span class="m3-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3>Фон чата</h3>
+                <div class="setting-item">
+                    <span>Живой фон (Анимация)</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="toggle-bg-anim" checked onchange="toggleBgAnim()">
+                        <span class="m3-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Показывать фон в чате</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="toggle-bg-static" checked onchange="toggleBgStatic()">
+                        <span class="m3-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3>Интерфейс</h3>
+                <div class="setting-item">
+                    <span>Анимации интерфейса</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="toggle-anim" checked onchange="toggleAnimations()">
+                        <span class="m3-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Квадратные поля ввода</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="toggle-square-input" onchange="toggleSquareInput()">
+                        <span class="m3-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Фон поля как у Surface</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="toggle-input-bg" onchange="toggleInputBg()">
+                        <span class="m3-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3>Аккаунт</h3>
+                <div class="setting-item m3-ripple" onclick="logout()" style="color: var(--md-sys-color-error);">
+                    <span>Выйти из аккаунта</span>
+                    <span class="material-symbols-rounded">logout</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ЭКРАН ЧАТА -->
+    <div id="chat-screen" class="screen">
+        <div class="top-app-bar">
+            <button class="icon-btn m3-ripple" onclick="closeChat()"><span class="material-symbols-rounded">arrow_back</span></button>
+            <h1 id="chat-title" style="flex-grow:1; margin-left:12px;">Chat</h1>
+        </div>
+        <div class="messages" id="messages-container"></div>
+        <div class="input-area">
+            <button class="icon-btn m3-ripple" onclick="openAttachMenu()"><span class="material-symbols-rounded">add_circle</span></button>
+            <input type="text" id="msg-input" placeholder="Сообщение..." onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button class="icon-btn m3-ripple" onclick="sendMessage()" style="background:var(--md-sys-color-primary); color:var(--md-sys-color-on-primary);"><span class="material-symbols-rounded">send</span></button>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" accept="image/*,video/*" style="display:none;" onchange="uploadMedia(this, 'image')">
+    <input type="file" id="audio-input" accept="audio/*" style="display:none;" onchange="uploadMedia(this, 'audio')">
+
+    <div class="modal-overlay" id="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-handle"></div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+<script>
+    const API_URL = "https://material-caht.onrender.com/api"; 
+    let currentUser = localStorage.getItem("user") || null;
+    let currentChatId = null;
+    let authMode = "login";
+    let codeRequested = false;
+    let updateInterval = null;
+    
+    let renderedMsgIds = new Set();
+    let isFirstLoad = true;
+
+    // --- LIGHTBOX (ПРОСМОТР ФОТО) ---
+    function openLightbox(url) {
+        document.getElementById("lightbox-img").src = url;
+        document.getElementById("image-lightbox").classList.add("active");
+    }
+    function closeLightbox() {
+        document.getElementById("image-lightbox").classList.remove("active");
+        setTimeout(() => { document.getElementById("lightbox-img").src = ""; }, 300);
+    }
+
+    // --- ФОН ТОЛЬКО ДЛЯ ЧАТА ---
+    const chatBg = document.getElementById("chat-bg");
+    const icons = ['chat', 'photo_camera', 'phone', 'star', 'image', 'mic'];
+    
+    function generateChatBackground() {
+        chatBg.innerHTML = "";
+        for (let i = 0; i < 40; i++) {
+            const icon = document.createElement("span");
+            icon.className = "bg-icon-anim material-symbols-rounded";
+            icon.innerText = icons[Math.floor(Math.random() * icons.length)];
+            icon.style.left = Math.random() * 100 + "vw";
+            icon.style.fontSize = (Math.random() * 30 + 20) + "px";
+            icon.style.animationDuration = (Math.random() * 10 + 10) + "s"; 
+            icon.style.animationDelay = "-" + (Math.random() * 20) + "s";
+            chatBg.appendChild(icon);
+        }
+    }
+    generateChatBackground();
+
+    function updateBackgrounds() {
+        const bgAnimEnabled = document.getElementById("toggle-bg-anim").checked;
+        const bgStaticEnabled = document.getElementById("toggle-bg-static").checked;
+        
+        if (document.getElementById("chat-screen").classList.contains("active") && bgStaticEnabled) {
+            chatBg.style.display = "block";
+            if (bgAnimEnabled) {
+                chatBg.classList.remove("paused");
+            } else {
+                chatBg.classList.add("paused");
+            }
+        } else {
+            chatBg.style.display = "none";
+        }
+    }
+
+    // --- НАСТРОЙКИ ---
+    function initSettings() {
+        setTheme(localStorage.getItem("theme") || "light");
+
+        if (localStorage.getItem("anim") === "false") {
+            document.body.classList.add("no-animations");
+            document.getElementById("toggle-anim").checked = false;
+        }
+
+        if (localStorage.getItem("square-input") === "true") {
+            document.body.classList.add("square-inputs");
+            document.getElementById("toggle-square-input").checked = true;
+        }
+        if (localStorage.getItem("input-bg") === "true") {
+            document.body.classList.add("input-bg-surface");
+            document.getElementById("toggle-input-bg").checked = true;
+        }
+
+        const msgAnim = localStorage.getItem("msg-anim") || "normal";
+        document.getElementById("select-msg-anim").value = msgAnim;
+
+        const textAnim = localStorage.getItem("text-anim") !== "false";
+        document.getElementById("toggle-text-anim").checked = textAnim;
+
+        document.getElementById("toggle-bg-anim").checked = localStorage.getItem("bg-anim") !== "false";
+        document.getElementById("toggle-bg-static").checked = localStorage.getItem("bg-static") !== "false";
+        
+        updateBackgrounds();
+
+        if (currentUser) {
+            document.getElementById("profile-username").innerText = `@${currentUser}`;
+            document.getElementById("profile-avatar").innerText = currentUser[0].toUpperCase();
+        }
+    }
+
+    function setTheme(theme) {
+        document.body.className = `theme-${theme}`;
+        localStorage.setItem("theme", theme);
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.theme-btn[data-theme="${theme}"]`).classList.add('active');
+        
+        if (localStorage.getItem("anim") === "false") document.body.classList.add("no-animations");
+        if (localStorage.getItem("square-input") === "true") document.body.classList.add("square-inputs");
+        if (localStorage.getItem("input-bg") === "true") document.body.classList.add("input-bg-surface");
+    }
+
+    function changeMsgAnim() {
+        localStorage.setItem("msg-anim", document.getElementById("select-msg-anim").value);
+    }
+
+    function toggleTextAnim() {
+        localStorage.setItem("text-anim", document.getElementById("toggle-text-anim").checked);
+    }
+
+    function toggleAnimations() {
+        const isChecked = document.getElementById("toggle-anim").checked;
+        document.body.classList.toggle("no-animations", !isChecked);
+        localStorage.setItem("anim", isChecked);
+    }
+
+    function toggleSquareInput() {
+        const isChecked = document.getElementById("toggle-square-input").checked;
+        document.body.classList.toggle("square-inputs", isChecked);
+        localStorage.setItem("square-input", isChecked);
+    }
+
+    function toggleInputBg() {
+        const isChecked = document.getElementById("toggle-input-bg").checked;
+        document.body.classList.toggle("input-bg-surface", isChecked);
+        localStorage.setItem("input-bg", isChecked);
+    }
+
+    function toggleBgAnim() {
+        localStorage.setItem("bg-anim", document.getElementById("toggle-bg-anim").checked);
+        updateBackgrounds();
+    }
+
+    function toggleBgStatic() {
+        localStorage.setItem("bg-static", document.getElementById("toggle-bg-static").checked);
+        updateBackgrounds();
+    }
+
+    // --- RIPPLE ---
+    document.addEventListener('click', function(e) {
+        if (document.body.classList.contains('no-animations')) return;
+        const target = e.target.closest('.m3-ripple');
+        if (!target) return;
+        const rect = target.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const circle = document.createElement('span');
+        circle.className = 'ripple-circle';
+        const size = Math.max(rect.width, rect.height);
+        circle.style.width = circle.style.height = size + 'px';
+        circle.style.left = (x - size / 2) + 'px';
+        circle.style.top = (y - size / 2) + 'px';
+
+        target.appendChild(circle);
+        setTimeout(() => circle.remove(), 400);
+    });
+
+    // --- УВЕДОМЛЕНИЯ ---
+    function showToast(text, isError = false) {
+        const toast = document.getElementById("toast");
+        toast.innerText = text;
+        toast.style.background = isError ? "var(--md-sys-color-error)" : "var(--md-sys-color-on-surface)";
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // --- НАВИГАЦИЯ ---
+    function switchScreen(screenId, btnElement) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        
+        if (btnElement && btnElement.classList.contains('nav-item')) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
+        
+        updateBackgrounds();
+    }
+
+    // --- АВТОРИЗАЦИЯ ---
+    function showForm(isLogin) {
+        authMode = isLogin ? "login" : "register";
+        document.getElementById("start-buttons").style.display = "none";
+        document.getElementById("auth-form").classList.add("active");
+        document.getElementById("chat-nick-field").style.display = isLogin ? "none" : "block";
+        document.getElementById("code-field").style.display = "none";
+        document.getElementById("btn-submit").innerText = isLogin ? "Войти" : "Получить код";
+        codeRequested = false;
+    }
+
+    function closeForm() {
+        document.getElementById("start-buttons").style.display = "flex";
+        document.getElementById("auth-form").classList.remove("active");
+    }
+
+    async function submitAuth() {
+        const tg = document.getElementById("input-tg").value.replace("@", "").trim();
+        const chatNick = document.getElementById("input-chat-nick").value.trim();
+        const pass = document.getElementById("input-pass").value.trim();
+        const btn = document.getElementById("btn-submit");
+
+        if (!tg || !pass) return showToast("Заполните поля", true);
+
+        btn.innerText = "Загрузка...";
+        btn.disabled = true;
+
+        try {
+            if (authMode === "login") {
+                const res = await fetch(`${API_URL}/auth`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: tg, tg_username: tg, password: pass })
+                });
+                if (res.ok) {
+                    currentUser = tg;
+                    localStorage.setItem("user", currentUser);
+                    startApp();
+                } else {
+                    showToast("Неверный пароль", true);
+                }
+            } else {
+                if (!codeRequested) {
+                    if (!chatNick) return showToast("Введите ник для чата", true);
+                    const res = await fetch(`${API_URL}/send_code`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tg_username: tg }) });
+                    const data = await res.json();
+                    if (data.status !== "error") {
+                        showToast("Код отправлен в ТГ");
+                        codeRequested = true;
+                        document.getElementById("code-field").style.display = "block";
+                        btn.innerText = "Подтвердить";
+                    } else { showToast("Нажмите /start в боте", true); }
+                } else {
+                    const res = await fetch(`${API_URL}/auth`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: chatNick, tg_username: tg, password: pass })
+                    });
+                    if (res.ok) {
+                        currentUser = chatNick;
+                        localStorage.setItem("user", currentUser);
+                        startApp();
+                    } else { showToast("Ошибка регистрации", true); }
+                }
+            }
+        } catch (e) { showToast("Ошибка сети", true); } 
+        finally {
+            btn.innerText = authMode === "login" ? "Войти" : (codeRequested ? "Подтвердить" : "Получить код");
+            btn.disabled = false;
+        }
+    }
+
+    function startApp() {
+        document.getElementById("auth-screen").classList.remove("active");
+        document.getElementById("main-screen").classList.add("active");
+        document.getElementById("profile-username").innerText = `@${currentUser}`;
+        document.getElementById("profile-avatar").innerText = currentUser[0].toUpperCase();
+        
+        document.getElementById("nav-chats").classList.add("active");
+        updateBackgrounds();
+    }
+
+    function logout() {
+        if(confirm("Вы уверены, что хотите выйти?")) {
+            localStorage.removeItem("user");
+            location.reload();
+        }
+    }
+
+    // --- ЛОГИКА ЧАТА И АНИМАЦИИ ---
+    function openChat(id, title) {
+        currentChatId = id === 'saved' ? `saved_${currentUser}` : id;
+        document.getElementById("chat-title").innerText = title;
+        
+        document.getElementById("main-screen").classList.remove("active");
+        document.getElementById("chat-screen").classList.add("active");
+
+        renderedMsgIds.clear();
+        isFirstLoad = true;
+        document.getElementById("messages-container").innerHTML = "";
+        
+        loadMessages();
+        if (updateInterval) clearInterval(updateInterval);
+        updateInterval = setInterval(loadMessages, 1000); 
+        updateBackgrounds();
+    }
+
+    function closeChat() {
+        document.getElementById("chat-screen").classList.remove("active");
+        document.getElementById("main-screen").classList.add("active");
+        if (updateInterval) clearInterval(updateInterval);
+        updateBackgrounds();
+    }
+
+    function typeWriter(element, text, index = 0, speed = 30) {
+        if (index < text.length) {
+            element.innerHTML += text.charAt(index);
+            setTimeout(() => typeWriter(element, text, index + 1, speed), speed);
+        }
+    }
+
+    async function loadMessages() {
+        if (!currentChatId) return;
+        try {
+            const res = await fetch(`${API_URL}/messages/${currentChatId}`);
+            const msgs = await res.json();
+            const container = document.getElementById("messages-container");
+            
+            const msgAnimStyle = localStorage.getItem("msg-anim") || "normal";
+            const textAnimEnabled = localStorage.getItem("text-anim") !== "false";
+            
+            let hasNew = false;
+
+            msgs.forEach(m => {
+                if (renderedMsgIds.has(m.id)) return;
+                
+                hasNew = true;
+                renderedMsgIds.add(m.id);
+
+                const div = document.createElement("div");
+                const isOut = m.sender === currentUser;
+                div.className = `msg ${isOut ? 'out' : 'in'}`;
+                
+                if (!isFirstLoad) {
+                    div.classList.add(`anim-${msgAnimStyle}`);
+                }
+
+                if (m.type === 'image') {
+                    // ВОТ ЗДЕСЬ ДОБАВЛЕН КЛИК ДЛЯ ОТКРЫТИЯ ФОТО
+                    div.innerHTML = `<img src="${m.media_url}" loading="lazy" onclick="openLightbox('${m.media_url}')" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\\'color:gray; font-size:12px;\\'>[Фото не загрузилось]</span>';">`;
+                } else if (m.type === 'audio') {
+                    div.innerHTML = `<audio controls src="${m.media_url}"></audio>`;
+                } else if (m.type === 'video') {
+                    div.innerHTML = `<video controls src="${m.media_url}"></video>`;
+                } else if (m.type === 'circle') {
+                    div.innerHTML = `<video class="circle-video" autoplay loop muted playsinline src="${m.media_url}"></video>`;
+                } else {
+                    if (!isFirstLoad && !isOut && textAnimEnabled) {
+                        const span = document.createElement("span");
+                        div.appendChild(span);
+                        typeWriter(span, m.text);
+                    } else {
+                        div.innerText = m.text;
+                    }
+                }
+                container.appendChild(div);
+            });
+
+            if (hasNew) {
+                isFirstLoad = false;
+                container.scrollTop = container.scrollHeight;
+            }
+        } catch (e) { }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById("msg-input");
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        
+        try {
+            await fetch(`${API_URL}/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: currentChatId, sender: currentUser, text: text, msg_type: "text" })
+            });
+            loadMessages();
+        } catch (e) { showToast("Ошибка отправки", true); }
+    }
+
+    // --- МЕДИА ---
+    function openAttachMenu() {
+        const modal = document.getElementById("modal");
+        const body = document.getElementById("modal-body");
+        body.innerHTML = `
+            <h2 style="margin-bottom:20px; font-weight:400;">Прикрепить</h2>
+            <div class="attach-menu">
+                <button class="attach-btn m3-ripple" onclick="document.getElementById('file-input').click(); closeModal();">
+                    <span class="material-symbols-rounded">image</span>Фото/Видео
+                </button>
+                <button class="attach-btn m3-ripple" onclick="document.getElementById('audio-input').click(); closeModal();">
+                    <span class="material-symbols-rounded">audiotrack</span>Аудио
+                </button>
+                <button class="attach-btn m3-ripple" onclick="startRecording('circle'); closeModal();">
+                    <span class="material-symbols-rounded">videocam</span>Кружок
+                </button>
+                <button class="attach-btn m3-ripple" onclick="showToast('В разработке'); closeModal();">
+                    <span class="material-symbols-rounded">poll</span>Опрос
+                </button>
+            </div>
+        `;
+        modal.classList.add("active");
+    }
+
+    async function uploadMedia(input, type) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const container = document.getElementById("messages-container");
+        const loadingDiv = document.createElement("div");
+        loadingDiv.className = "msg out loading-msg";
+        loadingDiv.innerHTML = `<div class="spinner"></div> Загрузка...`;
+        container.appendChild(loadingDiv);
+        container.scrollTop = container.scrollHeight;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch(`${API_URL}/upload`, { method: "POST", body: formData });
+            if (!res.ok) throw new Error("Ошибка сервера");
+            const data = await res.json();
+            
+            await fetch(`${API_URL}/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: currentChatId, sender: currentUser, media_url: data.url, msg_type: type })
+            });
+            
+            loadingDiv.remove();
+            loadMessages();
+        } catch (e) {
+            loadingDiv.innerText = "Ошибка";
+            showToast("Ошибка загрузки. Сервер не принимает файлы.", true);
+        }
+        input.value = "";
+    }
+
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    async function startRecording(type) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            mediaRecorder = new MediaRecorder(stream);
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+
+            mediaRecorder.onstop = async () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const file = new File([blob], "circle.webm", { type: 'video/webm' });
+                
+                const container = document.getElementById("messages-container");
+                const loadingDiv = document.createElement("div");
+                loadingDiv.className = "msg out loading-msg";
+                loadingDiv.innerHTML = `<div class="spinner"></div> Загрузка...`;
+                container.appendChild(loadingDiv);
+                container.scrollTop = container.scrollHeight;
+
+                const formData = new FormData();
+                formData.append("file", file);
+
+                try {
+                    const res = await fetch(`${API_URL}/upload`, { method: "POST", body: formData });
+                    const data = await res.json();
+                    
+                    await fetch(`${API_URL}/messages`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ chat_id: currentChatId, sender: currentUser, media_url: data.url, msg_type: "circle" })
+                    });
+
+                    loadingDiv.remove();
+                    loadMessages();
+                } catch (e) { showToast("Ошибка", true); }
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            showToast("Запись 5 сек...");
+            setTimeout(() => { if (mediaRecorder.state === 'recording') mediaRecorder.stop(); }, 5000);
+        } catch (e) { showToast("Нет доступа к камере", true); }
+    }
+
+    function closeModal(e) {
+        if (e) e.stopPropagation();
+        document.getElementById("modal").classList.remove("active");
+    }
+
+    // --- СТАРТ ---
+    initSettings();
+    if (currentUser) startApp();
+</script>
+</body>
+</html>
