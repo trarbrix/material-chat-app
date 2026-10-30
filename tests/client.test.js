@@ -166,7 +166,7 @@ test('authentication menus transition in sequence and ignore rapid repeat clicks
     assert.equal(start.style.display, 'none');
     assert.ok(form.classList.contains('active'));
     assert.ok(form.classList.contains('auth-step-enter'));
-    assert.equal(w.document.getElementById('chat-nick-field').style.display, 'none');
+    assert.equal(w.document.getElementById('input-chat-nick'), null);
     await new Promise(resolve => setTimeout(resolve, 450));
     w.closeForm();
     assert.ok(form.classList.contains('auth-step-leave'));
@@ -176,7 +176,7 @@ test('authentication menus transition in sequence and ignore rapid repeat clicks
     await new Promise(resolve => setTimeout(resolve, 450));
     w.showForm(false);
     await new Promise(resolve => setTimeout(resolve, 390));
-    assert.equal(w.document.getElementById('chat-nick-field').style.display, 'block');
+    assert.equal(w.document.getElementById('input-chat-nick'), null);
   } finally { dom.window.close(); }
 });
 test('authentication menus switch immediately with animations disabled', async () => {
@@ -188,5 +188,102 @@ test('authentication menus switch immediately with animations disabled', async (
     w.closeForm();
     assert.equal(w.document.getElementById('start-buttons').style.display, 'flex');
     assert.ok(!w.document.getElementById('auth-form').classList.contains('active'));
+  } finally { dom.window.close(); }
+});
+test('registration requires Telegram code but no nickname or public username', async () => {
+  const dom = await app({anim:'false'}); const w = dom.window;
+  try {
+    const requests=[];
+    w.fetch = async (url, options) => {
+      requests.push({url, body:JSON.parse(options.body)});
+      if (url.endsWith('/send_code')) return {ok:true, status:200, json:async()=>({status:'ok'})};
+      if (url.endsWith('/profile/register')) return {ok:true, status:200, json:async()=>({token:'token-123'})};
+      return {ok:true,status:200,json:async()=>({nickname:'',handle:'',avatar:''})};
+    };
+    w.showForm(false);
+    assert.equal(w.document.getElementById('input-chat-nick'), null);
+    w.document.getElementById('input-tg').value = 'Alice';
+    w.document.getElementById('input-pass').value = 'password';
+    await w.submitAuth();
+    assert.equal(requests[0].body.tg_username,'Alice');
+    assert.equal(w.document.getElementById('code-field').style.display,'block');
+    w.document.getElementById('input-code').value = '1234';
+    await w.submitAuth();
+    assert.deepEqual(requests[1].body,{tg_username:'Alice', password:'password', code:'1234'});
+    assert.equal(w.localStorage.getItem('user'),'Alice');
+    assert.equal(w.sessionStorage.getItem('profile-token'),'token-123');
+    assert.equal(w.sessionStorage.getItem('profile-token-owner'),'Alice');
+  } finally { dom.window.close(); }
+});
+test('profile editor saves nickname and handle to the server, not local storage', async () => {
+  const dom = await app({user:'alice'}); const w = dom.window;
+  try {
+    w.sessionStorage.setItem('profile-token','test-token'); w.sessionStorage.setItem('profile-token-owner','alice');
+    let saved;
+    w.fetch = async (url,options={}) => {
+      if (options.method === 'PUT') { saved={url, headers:options.headers, data:JSON.parse(options.body)}; return {ok:true,json:async()=>saved.data}; }
+      return {ok:true,json:async()=>({nickname:'',handle:'',avatar:''})};
+    };
+    await w.openProfileEditor();
+    const form=w.document.querySelector('.profile-form');
+    const [nickname,handle]=form.querySelectorAll('input[type=text]'); nickname.value='Alice A'; handle.value='@Alice_123';
+    await form.onsubmit({preventDefault(){}});
+    assert.deepEqual(saved.data,{nickname:'Alice A',handle:'alice_123',avatar:''});
+    assert.equal(saved.headers.Authorization,'Bearer test-token');
+    assert.equal(w.document.getElementById('profile-display-name').textContent,'Alice A');
+    assert.equal(w.document.getElementById('profile-username').textContent,'@alice_123');
+    assert.equal(w.localStorage.getItem('profile-token'),null);
+  } finally { dom.window.close(); }
+});
+test('global chat displays public profile names without interpreting HTML', async () => {
+  const dom = await app({user:'alice'}); const w = dom.window;
+  try {
+    w.fetch = async url => {
+      if (url.includes('/messages/')) return {ok:true,json:async()=>[{id:7,sender:'bob',text:'hello',type:'text'}]};
+      if (url.includes('/profile/public/')) return {ok:true,json:async()=>({nickname:'<b>Bob</b>',handle:'bob',avatar:''})};
+      throw Error('unexpected');
+    };
+    w.openChat('global','Global Chat'); await w.loadMessages();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const name=w.document.querySelector('.message-author span:last-child');
+    assert.equal(name.textContent,'<b>Bob</b>'); assert.equal(name.children.length,0);
+  } finally { dom.window.close(); }
+});
+test('legacy server supports sign-in and code-verified registration before profile deployment', async () => {
+  const dom = await app({anim:'false'}); const w=dom.window;
+  try {
+    let requests=[];
+    w.fetch = async (url, options={}) => {
+      requests.push({url, body:options.body && JSON.parse(options.body)});
+      if (url.endsWith('/profile/session') || url.endsWith('/profile/register')) return {ok:false,status:404};
+      if (url.endsWith('/send_code') || url.endsWith('/verify_code') || url.endsWith('/auth')) return {ok:true,status:200,json:async()=>({status:'ok'})};
+      return {ok:true,status:200,json:async()=>[]};
+    };
+    w.showForm(false); w.document.getElementById('input-tg').value='Alice'; w.document.getElementById('input-pass').value='password';
+    await w.submitAuth(); w.document.getElementById('input-code').value='1234'; await w.submitAuth();
+    assert.ok(requests.some(r => r.url.endsWith('/verify_code') && r.body.code === '1234'));
+    const auth=requests.find(r => r.url.endsWith('/auth'));
+    assert.match(auth.body.username, /^u_[0-9a-f]{32}$/);
+    assert.equal(w.localStorage.getItem('user'),'Alice');
+    assert.equal(w.sessionStorage.getItem('profile-token'),null);
+  } finally { dom.window.close(); }
+});
+test('existing sessions ask for a password before editing a shared profile', async () => {
+  const dom=await app({user:'alice'}); const w=dom.window;
+  try {
+    await w.openProfileEditor();
+    const form=w.document.querySelector('.profile-form');
+    const password=form.querySelector('input[type=password]'); password.value='secret';
+    let sessionBody;
+    w.fetch = async (url,options={}) => {
+      if (url.endsWith('/profile/session')) { sessionBody=JSON.parse(options.body); return {ok:true,json:async()=>({token:'new-token'})}; }
+      if (url.endsWith('/profile/me')) return {ok:true,json:async()=>({nickname:'Alice',handle:'alice',avatar:''})};
+      throw Error('unexpected request');
+    };
+    await form.onsubmit({preventDefault(){}});
+    assert.deepEqual(sessionBody,{identifier:'alice',password:'secret'});
+    assert.equal(w.sessionStorage.getItem('profile-token'),'new-token');
+    assert.equal(w.localStorage.getItem('password'),null);
+    assert.ok(w.document.querySelector('.profile-form input[type=file]'));
   } finally { dom.window.close(); }
 });

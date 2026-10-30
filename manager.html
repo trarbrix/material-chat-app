@@ -306,6 +306,14 @@
         .ai-form { display:flex; flex-direction:column; gap:12px; }
         .ai-form label { display:flex; flex-direction:column; gap:6px; font-size:14px; }
         .ai-form input { width:100%; padding:12px; border:1px solid var(--md-sys-color-outline); border-radius:12px; background:var(--md-sys-color-surface); color:var(--md-sys-color-on-surface); font-size:16px; }
+        .profile-form { display:flex; flex-direction:column; gap:12px; }
+        .profile-form label { display:flex; flex-direction:column; gap:6px; font-size:14px; }
+        .profile-form input:not([type=file]) { width:100%; padding:12px; border:1px solid var(--md-sys-color-outline); border-radius:12px; background:var(--md-sys-color-surface); color:var(--md-sys-color-on-surface); font-size:16px; }
+        .profile-form input[type=file] { max-width:100%; color:var(--md-sys-color-on-surface); }
+        .avatar img, .message-avatar img { width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+        .message-author { display:flex; align-items:center; gap:6px; margin-bottom:6px; font-size:12px; font-weight:500; }
+        .message-avatar { width:24px; height:24px; border-radius:50%; background:var(--md-sys-color-secondary-container); color:var(--md-sys-color-on-secondary-container); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; }
+        .message-avatar img { margin:0; border:0; background:none; cursor:default; }
         .settings-list { padding-bottom: 40px; }
         .setting-item { gap: 12px; }
         .setting-item > span:first-child { flex: 1; }
@@ -355,7 +363,6 @@
             </div>
             <div class="auth-form" id="auth-form">
                 <div class="m3-textfield"><input type="text" id="input-tg" placeholder="Ник в Telegram"></div>
-                <div class="m3-textfield" id="chat-nick-field" style="display:none;"><input type="text" id="input-chat-nick" placeholder="Ник в чате"></div>
                 <div class="m3-textfield"><input type="password" id="input-pass" placeholder="Пароль"></div>
                 <div class="m3-textfield" id="code-field" style="display:none;"><input type="text" id="input-code" placeholder="Код из ТГ"></div>
                 <button class="btn-filled m3-ripple" id="btn-submit" onclick="submitAuth()">Войти</button>
@@ -437,8 +444,9 @@
         </div>
         <div class="settings-list" style="align-items: center; text-align: center;">
             <div class="avatar" style="width: 96px; height: 96px; font-size: 40px; margin-top: 20px;" id="profile-avatar">U</div>
-            <h2 style="margin-top: 16px; font-weight: 500;" id="profile-username">@user</h2>
-            <p style="color: var(--md-sys-color-on-surface-variant);">Пользователь Material Chat</p>
+            <h2 style="margin-top: 16px; font-weight: 500;" id="profile-display-name">user</h2>
+            <p id="profile-username" style="color: var(--md-sys-color-on-surface-variant);">@user</p>
+            <button class="btn-outlined" style="max-width:320px;" onclick="openProfileEditor()" data-i18n="Изменить профиль">Изменить профиль</button>
 
             <div style="width: 100%; margin-top: 32px;">
                 <div class="setting-item m3-ripple" onclick="logout()" style="color: var(--md-sys-color-error); justify-content: center;">
@@ -458,7 +466,10 @@
             <h1 style="flex-grow:1; margin-left:12px;">Настройки</h1>
         </div>
         <div class="settings-list">
-
+            <div class="setting-group">
+                <h3 data-i18n="Профиль">Профиль</h3>
+                <button class="btn-outlined" onclick="openProfileEditor()" data-i18n="Ник, юзернейм и аватарка">Ник, юзернейм и аватарка</button>
+            </div>
             <div class="setting-group">
                 <h3 data-i18n="Язык">Язык</h3>
                 <label class="setting-item"><span data-i18n="Язык интерфейса">Язык интерфейса</span><select id="settings-language" class="anim-select" onchange="setLanguage(this.value)"></select></label>
@@ -730,7 +741,7 @@ function setLanguage(value) {
     document.querySelectorAll('#auth-language, #settings-language').forEach(el => el.value = language);
     const submit = document.getElementById('btn-submit');
     if (submit && typeof authMode !== 'undefined') submit.textContent = t(authMode === 'login' ? 'Войти' : (codeRequested ? 'Подтвердить' : 'Получить код'));
-    if (typeof currentUser !== 'undefined') renderFolders();
+    if (typeof currentUser !== 'undefined') { renderFolders(); if (currentUser) renderOwnProfile(); }
     renderEmojiGroups();
 }
 function markTranslations() {
@@ -762,8 +773,7 @@ function savePrivacy() {
     localStorage.setItem('privacy-blur', blur); localStorage.setItem('privacy-name', name);
     document.body.classList.toggle('privacy-blur', blur);
     if (currentUser) {
-        document.getElementById('profile-username').textContent = name ? '••••••' : '@' + currentUser;
-        document.getElementById('profile-avatar').textContent = name ? '•' : currentUser[0].toUpperCase();
+        renderOwnProfile();
     }
 }
 function isPowerSaving() { return localStorage.getItem('power-saving') === 'true'; }
@@ -970,8 +980,7 @@ function renderEmoji() {
         updateBackgrounds();
 
         if (currentUser) {
-            document.getElementById("profile-username").innerText = localStorage.getItem("privacy-name") === "true" ? "••••••" : `@${currentUser}`;
-            document.getElementById("profile-avatar").innerText = localStorage.getItem("privacy-name") === "true" ? "•" : currentUser[0].toUpperCase();
+            renderOwnProfile();
         }
     }
 
@@ -1110,6 +1119,189 @@ function renderEmoji() {
         } finally { aiRequestPending = false; }
     }
 
+    Object.assign(translations, {
+        'Изменить профиль':['Edit profile','Profil bearbeiten','Змінити профіль','Modifier le profil'],
+        'Ник, юзернейм и аватарка':['Nickname, username and avatar','Anzeigename, Benutzername und Avatar','Нік, юзернейм та аватар','Pseudo, nom d’utilisateur et avatar'],
+        'Пользователь':['User','Nutzer','Користувач','Utilisateur'],
+        'Ник':['Display name','Anzeigename','Нік','Pseudo'],
+        'Юзернейм':['Username','Benutzername','Юзернейм','Nom d’utilisateur'],
+        'Юзернейм не установлен':['No username set','Kein Benutzername festgelegt','Юзернейм не встановлено','Aucun nom d’utilisateur'],
+        'Аватарка':['Avatar','Profilbild','Аватар','Avatar'],
+        'Удалить аватарку':['Remove avatar','Profilbild entfernen','Видалити аватар','Supprimer l’avatar'],
+        'Юзернейм необязателен. 3–32 латинских буквы, цифры или _, первая — буква.':['Username is optional. Use 3–32 letters, digits or underscores, starting with a letter.','Benutzername ist optional. 3–32 Buchstaben, Ziffern oder Unterstriche, beginnend mit einem Buchstaben.','Юзернейм необов’язковий. 3–32 латинські літери, цифри або _, перша — літера.','Le nom d’utilisateur est facultatif. 3 à 32 lettres latines, chiffres ou _, en commençant par une lettre.'],
+        'Введите код':['Enter the code','Code eingeben','Введіть код','Saisissez le code'],
+        'Сервер профилей ещё не подключён':['The profile server is not configured yet','Der Profilserver ist noch nicht eingerichtet','Сервер профілів ще не підключено','Le serveur de profils n’est pas encore configuré'],
+        'Аккаунт уже существует':['Account already exists','Konto existiert bereits','Акаунт уже існує','Le compte existe déjà'],
+        'Неверный код или ошибка регистрации':['Incorrect code or registration failed','Falscher Code oder Registrierung fehlgeschlagen','Невірний код або помилка реєстрації','Code incorrect ou échec de l’inscription'],
+        'Подтвердите пароль для изменения профиля':['Enter your password to edit your profile','Passwort zur Profilbearbeitung eingeben','Введіть пароль для зміни профілю','Saisissez votre mot de passe pour modifier votre profil'],
+        'Продолжить':['Continue','Weiter','Продовжити','Continuer'],
+        'Юзернейм занят':['Username is already taken','Benutzername ist bereits vergeben','Юзернейм зайнятий','Ce nom d’utilisateur est déjà pris'],
+        'Проверьте ник, юзернейм и аватарку':['Check nickname, username and avatar','Anzeigename, Benutzername und Profilbild prüfen','Перевірте нік, юзернейм та аватар','Vérifiez le pseudo, le nom d’utilisateur et l’avatar'],
+        'Профиль сохранён':['Profile saved','Profil gespeichert','Профіль збережено','Profil enregistré'],
+        'Выберите PNG, JPEG или WebP до 8 МБ':['Choose a PNG, JPEG or WebP under 8 MB','PNG, JPEG oder WebP unter 8 MB auswählen','Оберіть PNG, JPEG або WebP до 8 МБ','Choisissez un PNG, JPEG ou WebP de moins de 8 Mo'],
+        'Не удалось открыть изображение':['Could not open image','Bild konnte nicht geöffnet werden','Не вдалося відкрити зображення','Impossible d’ouvrir l’image']
+    });
+    function emptyProfile() { return {nickname:'', handle:'', avatar:''}; }
+    let ownProfile = emptyProfile();
+    const publicProfiles = new Map();
+    function profileToken() {
+        return sessionStorage.getItem('profile-token-owner') === currentUser ? sessionStorage.getItem('profile-token') : null;
+    }
+    function safeAvatar(value) {
+        return typeof value === 'string' && value.length <= 280000 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
+    }
+    function showAvatar(element, avatar, fallback) {
+        element.replaceChildren();
+        if (safeAvatar(avatar)) {
+            const image = document.createElement('img'); image.src = avatar; image.alt = ''; element.appendChild(image);
+        } else { element.textContent = fallback; }
+    }
+    function renderOwnProfile() {
+        if (!currentUser) return;
+        const hidden = localStorage.getItem('privacy-name') === 'true';
+        const nickname = ownProfile.nickname || t('Пользователь');
+        document.getElementById('profile-display-name').textContent = hidden ? '••••••' : nickname;
+        document.getElementById('profile-username').textContent = hidden ? '••••••' : (ownProfile.handle ? '@' + ownProfile.handle : t('Юзернейм не установлен'));
+        showAvatar(document.getElementById('profile-avatar'), hidden ? '' : ownProfile.avatar, hidden ? '•' : Array.from(nickname)[0].toUpperCase());
+    }
+    async function loadOwnProfile() {
+        const token = profileToken(), owner = currentUser;
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_URL}/profile/me`, {headers:{Authorization:'Bearer ' + token}});
+            if (res.status === 401) { sessionStorage.removeItem('profile-token'); sessionStorage.removeItem('profile-token-owner'); return; }
+            if (!res.ok) return;
+            const data = await res.json();
+            if (currentUser !== owner || profileToken() !== token) return;
+            ownProfile = {...emptyProfile(), ...data}; renderOwnProfile();
+        } catch (_) { /* Existing accounts continue to work if the extension is unavailable. */ }
+    }
+    function askProfilePassword() {
+        const body = document.getElementById('modal-body'); body.replaceChildren();
+        const form = document.createElement('form'); form.className = 'profile-form';
+        const title = document.createElement('h2'); title.textContent = t('Изменить профиль'); form.appendChild(title);
+        const description = document.createElement('p'); description.className = 'setting-note'; description.textContent = t('Подтвердите пароль для изменения профиля'); form.appendChild(description);
+        const label = document.createElement('label'); label.textContent = t('Пароль');
+        const password = document.createElement('input'); password.type = 'password'; password.autocomplete = 'current-password'; password.required = true; label.appendChild(password); form.appendChild(label);
+        const submit = document.createElement('button'); submit.className = 'btn-filled'; submit.type = 'submit'; submit.textContent = t('Продолжить'); form.appendChild(submit);
+        form.onsubmit = async event => {
+            event.preventDefault(); const identifier = currentUser; submit.disabled = true;
+            try {
+                const res = await fetch(`${API_URL}/profile/session`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({identifier, password:password.value})});
+                if (res.status === 404 || res.status === 405) return showToast(t('Сервер профилей ещё не подключён'), true);
+                if (!res.ok) return showToast(t('Неверный пароль'), true);
+                const data = await res.json();
+                if (currentUser !== identifier) return;
+                sessionStorage.setItem('profile-token', data.token); sessionStorage.setItem('profile-token-owner', identifier);
+                password.value = ''; await openProfileEditor();
+            } catch (_) { showToast(t('Ошибка сети'), true); }
+            finally { submit.disabled = false; }
+        };
+        body.appendChild(form); document.getElementById('modal').classList.add('active');
+    }
+    async function openProfileEditor() {
+        if (!currentUser) return;
+        const token = profileToken(), owner = currentUser;
+        if (!token) return askProfilePassword();
+        let profile;
+        try {
+            const res = await fetch(`${API_URL}/profile/me`, {headers:{Authorization:'Bearer ' + token}});
+            if (res.status === 401) { sessionStorage.removeItem('profile-token'); sessionStorage.removeItem('profile-token-owner'); return askProfilePassword(); }
+            if (res.status === 404 || res.status === 405) return showToast(t('Сервер профилей ещё не подключён'), true);
+            if (!res.ok) throw new Error('profile');
+            profile = {...emptyProfile(), ...await res.json()};
+            if (owner !== currentUser || token !== profileToken()) return;
+        } catch (_) { showToast(t('Ошибка сети'), true); return; }
+        ownProfile = profile; renderOwnProfile();
+        const body = document.getElementById('modal-body'); body.replaceChildren();
+        const form = document.createElement('form'); form.className = 'profile-form';
+        const title = document.createElement('h2'); title.textContent = t('Изменить профиль'); form.appendChild(title);
+        const preview = document.createElement('div'); preview.className = 'avatar'; preview.style.cssText = 'width:80px;height:80px;font-size:32px;align-self:center;overflow:hidden';
+        const avatar = {value:profile.avatar || '', version:0, loading:false};
+        const updatePreview = () => showAvatar(preview, avatar.value, Array.from((nickname.value.trim() || t('Пользователь')))[0].toUpperCase());
+        form.appendChild(preview);
+        function field(labelText, value, maxLength) {
+            const label = document.createElement('label'); label.textContent = t(labelText);
+            const input = document.createElement('input'); input.type = 'text'; input.value = value; input.maxLength = maxLength; label.appendChild(input); form.appendChild(label); return input;
+        }
+        const nickname = field('Ник', profile.nickname || '', 40);
+        const handle = field('Юзернейм', profile.handle || '', 33); handle.placeholder = '@username';
+        const help = document.createElement('p'); help.className = 'setting-note'; help.textContent = t('Юзернейм необязателен. 3–32 латинских буквы, цифры или _, первая — буква.'); form.appendChild(help);
+        const imageLabel = document.createElement('label'); imageLabel.textContent = t('Аватарка');
+        const imageInput = document.createElement('input'); imageInput.type = 'file'; imageInput.accept = 'image/png,image/jpeg,image/webp'; imageLabel.appendChild(imageInput); form.appendChild(imageLabel);
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn-outlined'; remove.textContent = t('Удалить аватарку');
+        remove.onclick = () => { avatar.version++; avatar.loading = false; avatar.value = ''; imageInput.value = ''; updatePreview(); }; form.appendChild(remove);
+        nickname.addEventListener('input', updatePreview); updatePreview();
+        imageInput.onchange = () => {
+            const file = imageInput.files[0]; if (!file) return;
+            const version = ++avatar.version;
+            if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) { avatar.loading = false; imageInput.value = ''; return showToast(t('Выберите PNG, JPEG или WebP до 8 МБ'), true); }
+            avatar.loading = true;
+            const url = URL.createObjectURL(file); const image = new Image();
+            image.onload = () => {
+                try {
+                    if (version !== avatar.version) return;
+                    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+                    const side = Math.min(image.naturalWidth, image.naturalHeight);
+                    if (!side) throw new Error('image');
+                    canvas.getContext('2d').drawImage(image, (image.naturalWidth-side)/2, (image.naturalHeight-side)/2, side, side, 0, 0, 256, 256);
+                    avatar.value = canvas.toDataURL('image/jpeg', 0.85); updatePreview();
+                } catch (_) { showToast(t('Не удалось открыть изображение'), true); }
+                finally { if (version === avatar.version) avatar.loading = false; URL.revokeObjectURL(url); }
+            };
+            image.onerror = () => { URL.revokeObjectURL(url); if (version === avatar.version) { avatar.loading = false; showToast(t('Не удалось открыть изображение'), true); } };
+            image.src = url;
+        };
+        const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'btn-filled'; submit.textContent = t('Сохранить'); form.appendChild(submit);
+        form.onsubmit = async event => {
+            event.preventDefault();
+            if (avatar.loading) return;
+            const cleanHandle = handle.value.trim().replace(/^@/, '').toLowerCase();
+            if ((cleanHandle && !/^[a-z][a-z0-9_]{2,31}$/.test(cleanHandle)) || nickname.value.trim().length > 40) return showToast(t('Проверьте ник, юзернейм и аватарку'), true);
+            submit.disabled = true;
+            try {
+                const res = await fetch(`${API_URL}/profile/me`, {method:'PUT', headers:{'Content-Type':'application/json', Authorization:'Bearer '+token}, body:JSON.stringify({nickname:nickname.value.trim(), handle:cleanHandle, avatar:avatar.value})});
+                if (res.status === 401) { sessionStorage.removeItem('profile-token'); sessionStorage.removeItem('profile-token-owner'); return askProfilePassword(); }
+                if (res.status === 409) return showToast(t('Юзернейм занят'), true);
+                if (res.status === 400 || res.status === 413) return showToast(t('Проверьте ник, юзернейм и аватарку'), true);
+                if (!res.ok) throw new Error('profile');
+                const data = await res.json();
+                if (currentUser !== owner || profileToken() !== token) return;
+                ownProfile = {...emptyProfile(), ...data}; publicProfiles.delete(currentUser); renderOwnProfile(); closeModal(); showToast(t('Профиль сохранён'));
+            } catch (_) { showToast(t('Ошибка сети'), true); }
+            finally { submit.disabled = false; }
+        };
+        body.appendChild(form); document.getElementById('modal').classList.add('active');
+    }
+    function updateMessageAuthor(row, sender) {
+        const name = row.querySelector('.message-author-name');
+        const avatar = row.querySelector('.message-avatar');
+        const now = Date.now(); let entry = publicProfiles.get(sender);
+        if (!entry || entry.expires < now) {
+            const promise = fetch(`${API_URL}/profile/public/${encodeURIComponent(sender)}`).then(res => res.ok ? res.json() : emptyProfile()).catch(() => emptyProfile());
+            entry = {expires:now + 60000, promise}; publicProfiles.set(sender, entry);
+        }
+        entry.promise.then(profile => {
+            if (!row.isConnected) return;
+            name.textContent = profile.nickname || (profile.handle ? '@' + profile.handle : t('Пользователь'));
+            showAvatar(avatar, profile.avatar, Array.from(name.textContent)[0].toUpperCase());
+        });
+    }
+    function addMessageAuthor(messageElement, sender) {
+        if (!sender) return;
+        const row = document.createElement('div'); row.className = 'message-author'; row.dataset.sender = sender;
+        const avatar = document.createElement('span'); avatar.className = 'message-avatar';
+        const name = document.createElement('span'); name.className = 'message-author-name'; name.textContent = t('Пользователь');
+        showAvatar(avatar, '', Array.from(name.textContent)[0].toUpperCase()); row.append(avatar, name); messageElement.appendChild(row);
+        updateMessageAuthor(row, sender);
+    }
+    function refreshMessageAuthors(container) {
+        container.querySelectorAll('.message-author[data-sender]').forEach(row => {
+            const entry = publicProfiles.get(row.dataset.sender);
+            if (!entry || entry.expires < Date.now()) updateMessageAuthor(row, row.dataset.sender);
+        });
+    }
+
     // --- RIPPLE ---
     document.addEventListener('click', function(e) {
         if (document.body.classList.contains('no-animations')) return;
@@ -1208,7 +1400,6 @@ function renderEmoji() {
     function showForm(isLogin) {
         transitionAuthStep(true, () => {
             authMode = isLogin ? "login" : "register";
-            document.getElementById("chat-nick-field").style.display = isLogin ? "none" : "block";
             document.getElementById("code-field").style.display = "none";
             document.getElementById("btn-submit").innerText = isLogin ? t("Войти") : t("Получить код");
             codeRequested = false;
@@ -1221,7 +1412,6 @@ function renderEmoji() {
 
     async function submitAuth() {
         const tg = document.getElementById("input-tg").value.replace("@", "").trim();
-        const chatNick = document.getElementById("input-chat-nick").value.trim();
         const pass = document.getElementById("input-pass").value.trim();
         const btn = document.getElementById("btn-submit");
 
@@ -1232,41 +1422,68 @@ function renderEmoji() {
 
         try {
             if (authMode === "login") {
-                const res = await fetch(`${API_URL}/auth`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username: tg, tg_username: tg, password: pass })
+                const sessionResponse = await fetch(`${API_URL}/profile/session`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ identifier: tg, password: pass })
                 });
-                if (res.ok) {
+                if (sessionResponse.ok) {
+                    const data = await sessionResponse.json();
                     currentUser = tg;
+                    sessionStorage.setItem('profile-token', data.token);
+                    sessionStorage.setItem('profile-token-owner', currentUser);
                     localStorage.setItem("user", currentUser);
                     startApp();
-                } else {
-                    showToast(t("Неверный пароль"), true);
-                }
-            } else {
-                if (!codeRequested) {
-                    if (!chatNick) return showToast(t("Введите ник для чата"), true);
-                    const res = await fetch(`${API_URL}/send_code`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tg_username: tg }) });
-                    const data = await res.json();
-                    if (data.status !== "error") {
-                        showToast(t("Код отправлен в ТГ"));
-                        codeRequested = true;
-                        document.getElementById("code-field").style.display = "block";
-                        btn.innerText = t("Подтвердить");
-                    } else { showToast(t("Нажмите /start в боте"), true); }
-                } else {
-                    const res = await fetch(`${API_URL}/auth`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username: chatNick, tg_username: tg, password: pass })
+                } else if (sessionResponse.status === 404 || sessionResponse.status === 405) {
+                    // Keep existing accounts usable until the server extension is deployed.
+                    const legacy = await fetch(`${API_URL}/auth`, {
+                        method:"POST", headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({username:tg, tg_username:tg, password:pass})
                     });
-                    if (res.ok) {
-                        currentUser = chatNick;
-                        localStorage.setItem("user", currentUser);
-                        startApp();
-                    } else { showToast(t("Ошибка регистрации"), true); }
+                    if (!legacy.ok) return showToast(t("Неверный пароль"), true);
+                    currentUser = tg;
+                    sessionStorage.removeItem('profile-token'); sessionStorage.removeItem('profile-token-owner');
+                    localStorage.setItem('user', currentUser); startApp();
+                    showToast(t("Сервер профилей ещё не подключён"), true);
+                } else if (sessionResponse.status === 401) { showToast(t("Неверный пароль"), true); }
+                else { showToast(t("Ошибка сети"), true); }
+            } else if (!codeRequested) {
+                const res = await fetch(`${API_URL}/send_code`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tg_username: tg }) });
+                const data = await res.json();
+                if (res.ok && data.status !== "error") {
+                    showToast(t("Код отправлен в ТГ"));
+                    codeRequested = true;
+                    document.getElementById("code-field").style.display = "block";
+                    btn.innerText = t("Подтвердить");
+                } else { showToast(t("Нажмите /start в боте"), true); }
+            } else {
+                const code = document.getElementById("input-code").value.trim();
+                if (!code) return showToast(t("Введите код"), true);
+                const res = await fetch(`${API_URL}/profile/register`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tg_username: tg, password: pass, code: code })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    currentUser = tg;
+                    sessionStorage.setItem('profile-token', data.token);
+                    sessionStorage.setItem('profile-token-owner', currentUser);
+                    localStorage.setItem("user", currentUser);
+                    startApp();
+                } else if (res.status === 404 || res.status === 405) {
+                    // Existing backend: verify the code first and generate a private identifier.
+                    const verified = await fetch(`${API_URL}/verify_code`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tg_username:tg, code})});
+                    if (!verified.ok) return showToast(t('Неверный код или ошибка регистрации'), true);
+                    const random = new Uint8Array(16); crypto.getRandomValues(random);
+                    const internalId = 'u_' + Array.from(random, value => value.toString(16).padStart(2, '0')).join('');
+                    const legacy = await fetch(`${API_URL}/auth`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:internalId, tg_username:tg, password:pass})});
+                    if (!legacy.ok) return showToast(t('Ошибка регистрации'), true);
+                    currentUser = tg;
+                    sessionStorage.removeItem('profile-token'); sessionStorage.removeItem('profile-token-owner');
+                    localStorage.setItem('user', currentUser); startApp();
+                    showToast(t('Сервер профилей ещё не подключён'), true);
                 }
+                else if (res.status === 409) { showToast(t("Аккаунт уже существует"), true); }
+                else { showToast(t("Неверный код или ошибка регистрации"), true); }
             }
         } catch (e) { showToast(t("Ошибка сети"), true); }
         finally {
@@ -1278,8 +1495,9 @@ function renderEmoji() {
     function startApp() {
         document.getElementById("auth-screen").classList.remove("active");
         document.getElementById("main-screen").classList.add("active");
-        document.getElementById("profile-username").innerText = localStorage.getItem("privacy-name") === "true" ? "••••••" : `@${currentUser}`;
-        document.getElementById("profile-avatar").innerText = localStorage.getItem("privacy-name") === "true" ? "•" : currentUser[0].toUpperCase();
+        ownProfile = emptyProfile();
+        renderOwnProfile();
+        loadOwnProfile();
 
         document.getElementById("nav-chats").classList.add("active");
         updateBackgrounds();
@@ -1289,6 +1507,8 @@ function renderEmoji() {
     function logout() {
         if(confirm(t("Вы уверены, что хотите выйти?"))) {
             localStorage.removeItem("user");
+            sessionStorage.removeItem('profile-token');
+            sessionStorage.removeItem('profile-token-owner');
             location.reload();
         }
     }
@@ -1359,6 +1579,7 @@ function renderEmoji() {
                 const isOut = m.sender === currentUser;
                 div.className = `msg ${isOut ? 'out' : 'in'}`;
                 div.tabIndex = 0;
+                if (currentChatId === 'global') addMessageAuthor(div, m.sender);
 
                 if (!isFirstLoad && !isPowerSaving() && localStorage.getItem("anim") !== "false") {
                     div.classList.add(`anim-${msgAnimStyle}`);
@@ -1386,12 +1607,15 @@ function renderEmoji() {
                         div.appendChild(span);
                         typeWriter(span, String(m.text || ''));
                     } else {
-                        div.innerText = m.text || '';
+                        const text = document.createElement('span');
+                        text.innerText = m.text || '';
+                        div.appendChild(text);
                     }
                 }
                 container.appendChild(div);
             });
 
+            if (currentChatId === 'global') refreshMessageAuthors(container);
             if (hasNew) {
                 isFirstLoad = false;
                 container.scrollTop = container.scrollHeight;
