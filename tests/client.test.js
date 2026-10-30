@@ -128,3 +128,27 @@ test('AI rejects insecure endpoint and does not transmit input without configura
     assert.equal(w.localStorage.getItem('ai-endpoint'),null);
   } finally { dom.window.close(); }
 });
+test('polling backs off after failures and stops in hidden tabs', async () => {
+  const dom = await app({user:'alice'}); const w = dom.window;
+  try {
+    Object.defineProperty(w.document, 'hidden', {configurable:true, value:false});
+    const timers = [];
+    w.setTimeout = (callback, delay) => { timers.push({callback, delay}); return timers.length; };
+    w.clearTimeout = () => {};
+    w.fetch = async () => { throw new Error('network'); };
+    w.openChat('global','Global Chat');
+    assert.equal(timers.at(-1).delay, 15000);
+    await timers.at(-1).callback();
+    assert.equal(timers.at(-1).delay, 30000);
+    await timers.at(-1).callback();
+    assert.equal(timers.at(-1).delay, 60000);
+    const count = timers.length;
+    Object.defineProperty(w.document, 'hidden', {configurable:true, value:true});
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    await timers.at(-1).callback();
+    assert.equal(timers.length, count);
+    Object.defineProperty(w.document, 'hidden', {configurable:true, value:false});
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    assert.equal(timers.length, count + 1);
+  } finally { dom.window.close(); }
+});
