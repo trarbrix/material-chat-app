@@ -291,6 +291,10 @@
         #toast { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(50px); background: var(--md-sys-color-on-surface); color: var(--md-sys-color-surface); padding: 12px 24px; border-radius: var(--md-sys-shape-corner-full); z-index: 200; transition: 0.3s; opacity: 0; pointer-events: none; font-size: 14px; font-weight: 500; }
         #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
+        #toast { max-width: calc(100vw - 32px); width: max-content; text-align:center; line-height:1.4; }
+        .ai-form { display:flex; flex-direction:column; gap:12px; }
+        .ai-form label { display:flex; flex-direction:column; gap:6px; font-size:14px; }
+        .ai-form input { width:100%; padding:12px; border:1px solid var(--md-sys-color-outline); border-radius:12px; background:var(--md-sys-color-surface); color:var(--md-sys-color-on-surface); font-size:16px; }
         .settings-list { padding-bottom: 40px; }
         .setting-item { gap: 12px; }
         .setting-item > span:first-child { flex: 1; }
@@ -371,6 +375,13 @@
                 <div>
                     <div style="font-weight:500; font-size:16px;">Global Chat</div>
                     <div style="font-size:14px; color:var(--md-sys-color-on-surface-variant);">Общий чат</div>
+                </div>
+            </div>
+            <div class="chat-item m3-ripple" data-chat-id="ai" onclick="openChat('ai', t('ИИ-помощник'))">
+                <div class="avatar"><span class="material-symbols-rounded">smart_toy</span></div>
+                <div>
+                    <div style="font-weight:500; font-size:16px;" data-i18n="ИИ-помощник">ИИ-помощник</div>
+                    <div style="font-size:14px; color:var(--md-sys-color-on-surface-variant);" data-i18n="Нужен API модели">Нужен API модели</div>
                 </div>
             </div>
         </div>
@@ -546,6 +557,7 @@
         <div class="top-app-bar">
             <button class="icon-btn m3-ripple" onclick="closeChat()"><span class="material-symbols-rounded">arrow_back</span></button>
             <h1 id="chat-title" style="flex-grow:1; margin-left:12px;">Chat</h1>
+            <button class="icon-btn" id="ai-settings-button" style="display:none" onclick="openAISettings()" data-i18n-label="Настройки ИИ" aria-label="Настройки ИИ"><span class="material-symbols-rounded">settings</span></button>
         </div>
         <div class="messages" id="messages-container"></div>
         <div class="emoji-panel" id="emoji-panel" hidden><input class="emoji-search" id="emoji-search" data-i18n-placeholder="Поиск эмодзи (на английском)" placeholder="Поиск эмодзи (на английском)"><div class="emoji-groups" id="emoji-groups"></div><div class="emoji-grid" id="emoji-grid"></div></div>
@@ -577,6 +589,25 @@ window.EMOJI_DATA=[["😀","grinning face","Smileys & Emotion"],["😃","grinnin
 <script>
 // Interface translations. Russian is the original language of the application.
 const translations = {
+
+'ИИ-помощник':['AI assistant','KI-Assistent','ШІ-помічник','Assistant IA'],
+'Нужен API модели':['Model API required','Modell-API erforderlich','Потрібен API моделі','API de modèle requise'],
+'Настройки ИИ':['AI settings','KI-Einstellungen','Налаштування ШІ','Paramètres IA'],
+'Подключите совместимый API в настройках ИИ.':['Connect a compatible API in AI settings.','Verbinde eine kompatible API in den KI-Einstellungen.','Підключіть сумісний API в налаштуваннях ШІ.','Connectez une API compatible dans les paramètres IA.'],
+'Запросы и история отправляются выбранному провайдеру. Это может быть платно. История хранится в этом браузере. Ключ хранится только до перезагрузки страницы.':['Your messages and history are sent to the chosen provider, which may charge for use. History is stored in this browser. The key is kept only until the page reloads.','Nachrichten und Verlauf werden an den gewählten Anbieter gesendet; Kosten können entstehen. Der Verlauf wird in diesem Browser gespeichert. Der Schlüssel bleibt nur bis zum Neuladen erhalten.','Запити та історія надсилаються обраному провайдеру; використання може бути платним. Історія зберігається в цьому браузері. Ключ зберігається до перезавантаження сторінки.','Les messages et l’historique sont envoyés au fournisseur choisi, qui peut facturer l’utilisation. L’historique est stocké dans ce navigateur. La clé est conservée jusqu’au rechargement de la page.'],
+'Адрес API (HTTPS)':['API URL (HTTPS)','API-Adresse (HTTPS)','Адреса API (HTTPS)','Adresse API (HTTPS)'],
+'Модель':['Model','Modell','Модель','Modèle'],
+'Ключ API':['API key','API-Schlüssel','Ключ API','Clé API'],
+'Сохранить':['Save','Speichern','Зберегти','Enregistrer'],
+'Очистить историю ИИ':['Clear AI history','KI-Verlauf löschen','Очистити історію ШІ','Effacer l’historique IA'],
+'Удалить историю ИИ на этом устройстве?':['Delete AI history on this device?','KI-Verlauf auf diesem Gerät löschen?','Видалити історію ШІ на цьому пристрої?','Supprimer l’historique IA sur cet appareil ?'],
+'Укажите HTTPS-адрес и модель':['Enter an HTTPS URL and model','HTTPS-Adresse und Modell eingeben','Вкажіть HTTPS-адресу та модель','Saisissez une adresse HTTPS et un modèle'],
+'Подключите ИИ в настройках чата':['Connect AI in the chat settings','KI in den Chat-Einstellungen verbinden','Підключіть ШІ в налаштуваннях чату','Connectez l’IA dans les paramètres du chat'],
+'Ошибка ИИ: сеть, CORS или сервер недоступен':['AI error: network, CORS or server unavailable','KI-Fehler: Netzwerk, CORS oder Server nicht erreichbar','Помилка ШІ: мережа, CORS або сервер недоступний','Erreur IA : réseau, CORS ou serveur indisponible'],
+'Ошибка ИИ':['AI error','KI-Fehler','Помилка ШІ','Erreur IA'],
+'Провайдер не вернул текстовый ответ':['The provider returned no text response','Der Anbieter hat keine Textantwort geliefert','Провайдер не повернув текстову відповідь','Le fournisseur n’a renvoyé aucune réponse texte'],
+'Нет соединения с сервером или запрос заблокирован браузером':['Cannot reach the server or the browser blocked the request','Server nicht erreichbar oder Anfrage vom Browser blockiert','Немає з’єднання із сервером або запит заблоковано браузером','Serveur inaccessible ou requête bloquée par le navigateur'],
+'Ошибка сервера':['Server error','Serverfehler','Помилка сервера','Erreur du serveur'],
 'Войти':['Sign in','Anmelden','Увійти','Se connecter'],
 'Зарегистрироваться':['Create account','Konto erstellen','Зареєструватися','Créer un compte'],
 'Ник в Telegram':['Telegram username','Telegram-Benutzername','Нік у Telegram','Nom d’utilisateur Telegram'],
@@ -733,7 +764,7 @@ function savePower() {
 function schedulePolling() {
     if (updateInterval) clearInterval(updateInterval);
     updateInterval = null;
-    if (!currentChatId || (isPowerSaving() && document.hidden)) return;
+    if (!currentChatId || currentChatId === 'ai' || (isPowerSaving() && document.hidden)) return;
     updateInterval = setInterval(loadMessages, isPowerSaving() ? 10000 : 1000);
 }
 document.addEventListener('visibilitychange', () => {
@@ -747,7 +778,7 @@ let selectedFolder = 'all';
 function folderKey() { return 'chat-folders:' + (currentUser || ''); }
 function getFolders() { try { const data = JSON.parse(localStorage.getItem(folderKey()) || '[]'); return Array.isArray(data) ? data : []; } catch (_) { return []; } }
 function putFolders(folders) { localStorage.setItem(folderKey(), JSON.stringify(folders)); renderFolders(); }
-function chatLabel(id) { return id === 'saved' ? t('Избранное') : t('Global Chat'); }
+function chatLabel(id) { return id === 'saved' ? t('Избранное') : id === 'ai' ? t('ИИ-помощник') : t('Global Chat'); }
 function renderFolders() {
     const bar = document.getElementById('folder-bar'); if (!bar) return;
     const folders = getFolders();
@@ -789,7 +820,7 @@ function manageFolder() {
     const body = document.getElementById('modal-body'); body.replaceChildren();
     const heading = document.createElement('h2'); heading.textContent = folder.name; body.appendChild(heading);
     const label = document.createElement('p'); label.className='setting-note'; label.style.marginTop='12px'; label.textContent=t('Чаты в папке'); body.appendChild(label);
-    ['saved','global'].forEach(id => {
+    ['saved','global','ai'].forEach(id => {
         const row = document.createElement('label'); row.className = 'folder-check';
         const checkbox = document.createElement('input'); checkbox.type='checkbox'; checkbox.checked = (folder.chats || []).includes(id);
         checkbox.onchange = () => { const folders = getFolders(); const f = folders.find(x => x.id === folder.id); if (!f) return; f.chats = (f.chats || []).filter(x => x !== id); if (checkbox.checked) f.chats.push(id); putFolders(folders); };
@@ -971,6 +1002,91 @@ function renderEmoji() {
         updateBackgrounds();
     }
 
+    // The endpoint and model are saved locally; the key stays in memory only.
+    let aiApiKey = '';
+    let aiRequestPending = false;
+    function aiHistoryKey(user) { return 'ai-history:' + user; }
+    function getAIHistory(user = currentUser) {
+        try {
+            const history = JSON.parse(localStorage.getItem(aiHistoryKey(user)) || '[]');
+            return Array.isArray(history) ? history.filter(m => m && ['user', 'assistant'].includes(m.role) && typeof m.content === 'string') : [];
+        } catch (_) { return []; }
+    }
+    function renderAIChat() {
+        if (currentChatId !== 'ai') return;
+        const container = document.getElementById('messages-container');
+        container.replaceChildren();
+        const history = getAIHistory();
+        if (!history.length) {
+            const note = document.createElement('p'); note.className = 'setting-note';
+            note.textContent = t('Подключите совместимый API в настройках ИИ.'); container.appendChild(note);
+        }
+        history.forEach(message => {
+            const div = document.createElement('div');
+            div.className = 'msg ' + (message.role === 'user' ? 'out' : 'in');
+            div.tabIndex = 0; div.textContent = message.content; container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+    function openAISettings() {
+        const body = document.getElementById('modal-body'); body.replaceChildren();
+        const form = document.createElement('form'); form.className = 'ai-form';
+        const heading = document.createElement('h2'); heading.textContent = t('Настройки ИИ'); form.appendChild(heading);
+        const note = document.createElement('p'); note.className = 'setting-note';
+        note.textContent = t('Запросы и история отправляются выбранному провайдеру. Это может быть платно. История хранится в этом браузере. Ключ хранится только до перезагрузки страницы.'); form.appendChild(note);
+        function field(label, value, placeholder, type = 'text') {
+            const row = document.createElement('label'); row.textContent = t(label);
+            const input = document.createElement('input'); input.type = type; input.value = value;
+            input.placeholder = placeholder; input.autocomplete = 'off'; row.appendChild(input); form.appendChild(row); return input;
+        }
+        const initialEndpoint = localStorage.getItem('ai-endpoint') || '';
+        const endpoint = field('Адрес API (HTTPS)', initialEndpoint, 'https://api.example.com/v1/chat/completions', 'url');
+        const model = field('Модель', localStorage.getItem('ai-model') || '', 'model-name');
+        const key = field('Ключ API', aiApiKey, '', 'password');
+        endpoint.addEventListener('input', () => { if (endpoint.value.trim() !== initialEndpoint) key.value = ''; });
+        const save = document.createElement('button'); save.type = 'submit'; save.className = 'btn-filled'; save.textContent = t('Сохранить'); form.appendChild(save);
+        const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'btn-outlined'; clear.textContent = t('Очистить историю ИИ');
+        clear.onclick = () => { if (aiRequestPending) return; if (confirm(t('Удалить историю ИИ на этом устройстве?'))) { localStorage.removeItem(aiHistoryKey(currentUser)); renderAIChat(); closeModal(); } }; form.appendChild(clear);
+        form.onsubmit = event => {
+            event.preventDefault();
+            let url;
+            try { url = new URL(endpoint.value.trim()); } catch (_) { showToast(t('Укажите HTTPS-адрес и модель'), true); return; }
+            if (url.protocol !== 'https:' || url.username || url.password || !model.value.trim()) { showToast(t('Укажите HTTPS-адрес и модель'), true); return; }
+            localStorage.setItem('ai-endpoint', url.href); localStorage.setItem('ai-model', model.value.trim());
+            aiApiKey = key.value.trim(); closeModal();
+        };
+        body.appendChild(form); document.getElementById('modal').classList.add('active');
+    }
+    async function sendAIMessage() {
+        if (aiRequestPending) return;
+        const input = document.getElementById('msg-input'); const text = input.value.trim();
+        if (!text) return;
+        const endpoint = localStorage.getItem('ai-endpoint'); const model = localStorage.getItem('ai-model');
+        if (!endpoint || !model) { showToast(t('Подключите ИИ в настройках чата'), true); openAISettings(); return; }
+        // Validate saved settings before sending anything, including the key.
+        try { const url = new URL(endpoint); if (url.protocol !== 'https:' || url.username || url.password) throw new Error('url'); }
+        catch (_) { showToast(t('Укажите HTTPS-адрес и модель'), true); openAISettings(); return; }
+        const user = currentUser; const history = getAIHistory(user); const messages = [...history, {role:'user', content:text}];
+        input.value = ''; aiRequestPending = true;
+        const container = document.getElementById('messages-container');
+        const pending = document.createElement('div'); pending.className = 'msg out'; pending.textContent = text; container.appendChild(pending);
+        const loading = document.createElement('div'); loading.className = 'msg in loading-msg'; loading.textContent = t('Загрузка...'); container.appendChild(loading); container.scrollTop = container.scrollHeight;
+        try {
+            const headers = {'Content-Type':'application/json'}; if (aiApiKey) headers.Authorization = 'Bearer ' + aiApiKey;
+            const res = await fetch(endpoint, {method:'POST', headers, credentials:'omit', body:JSON.stringify({model, messages:messages.slice(-30), stream:false})});
+            if (!res.ok) { const error = new Error('HTTP ' + res.status); error.httpStatus = res.status; throw error; }
+            const data = await res.json(); const answer = data?.choices?.[0]?.message?.content;
+            if (typeof answer !== 'string' || !answer.trim()) throw new Error('empty');
+            messages.push({role:'assistant', content:answer});
+            localStorage.setItem(aiHistoryKey(user), JSON.stringify(messages));
+            if (currentChatId === 'ai' && currentUser === user) renderAIChat();
+        } catch (error) {
+            if (currentChatId === 'ai' && currentUser === user) { renderAIChat(); if (!input.value) input.value = text; }
+            const detail = error.httpStatus ? 'HTTP ' + error.httpStatus : error.message === 'empty' ? t('Провайдер не вернул текстовый ответ') : t('Ошибка ИИ: сеть, CORS или сервер недоступен');
+            showToast(t('Ошибка ИИ') + ': ' + detail, true);
+        } finally { aiRequestPending = false; }
+    }
+
     // --- RIPPLE ---
     document.addEventListener('click', function(e) {
         if (document.body.classList.contains('no-animations')) return;
@@ -997,7 +1113,7 @@ function renderEmoji() {
         toast.innerText = text;
         toast.style.background = isError ? "var(--md-sys-color-error)" : "var(--md-sys-color-on-surface)";
         toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 3000);
+        setTimeout(() => toast.classList.remove("show"), isError ? 9000 : 3000);
     }
 
     // --- НАВИГАЦИЯ ---
@@ -1111,13 +1227,15 @@ function renderEmoji() {
         document.getElementById("main-screen").classList.remove("active");
         document.getElementById("chat-screen").classList.add("active");
 
+        if (updateInterval) clearInterval(updateInterval);
+        updateInterval = null;
         renderedMsgIds.clear();
         isFirstLoad = true;
         document.getElementById("messages-container").innerHTML = "";
 
-        loadMessages();
-        if (updateInterval) clearInterval(updateInterval);
-        schedulePolling();
+        document.getElementById("ai-settings-button").style.display = id === 'ai' ? 'flex' : 'none';
+        if (id === 'ai') renderAIChat();
+        else { loadMessages(); schedulePolling(); }
         updateBackgrounds();
     }
 
@@ -1142,7 +1260,7 @@ function renderEmoji() {
     }
 
     async function loadMessages() {
-        if (!currentChatId) return;
+        if (!currentChatId || currentChatId === 'ai') return;
         try {
             const chatId = currentChatId;
             const res = await fetch(`${API_URL}/messages/${encodeURIComponent(chatId)}`);
@@ -1207,6 +1325,7 @@ function renderEmoji() {
     }
 
     async function sendMessage() {
+        if (currentChatId === 'ai') return sendAIMessage();
         const input = document.getElementById("msg-input");
         const text = input.value.trim();
         if (!text) return;
@@ -1218,9 +1337,17 @@ function renderEmoji() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ chat_id: currentChatId, sender: currentUser, text: text, msg_type: "text" })
             });
-            if (!res.ok) throw new Error("Message send failed");
+            if (!res.ok) {
+                const error = new Error('HTTP ' + res.status);
+                error.httpStatus = res.status;
+                throw error;
+            }
             loadMessages();
-        } catch (e) { if (!input.value) input.value = text; showToast(t("Ошибка отправки"), true); }
+        } catch (e) {
+            if (!input.value) input.value = text;
+            const detail = e.httpStatus ? t('Ошибка сервера') + ' (HTTP ' + e.httpStatus + ')' : t('Нет соединения с сервером или запрос заблокирован браузером');
+            showToast(t('Ошибка отправки') + ': ' + detail, true);
+        }
     }
 
     // --- МЕДИА ---

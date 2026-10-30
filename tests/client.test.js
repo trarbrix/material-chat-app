@@ -75,3 +75,56 @@ test('emoji catalog searches and inserts at the caret', async () => {
   assert.ok(w.EMOJI_DATA.length > 3000);
   dom.window.close();
 });
+test('message sending reports HTTP and network errors and restores the text', async () => {
+  const dom = await app({user:'alice'}); const w = dom.window;
+  try {
+    w.openChat('global','Global Chat');
+    const input = w.document.getElementById('msg-input');
+    input.value = 'Hello';
+    w.fetch = async () => ({ok:false,status:503});
+    await w.sendMessage();
+    assert.equal(input.value, 'Hello');
+    assert.match(w.document.getElementById('toast').innerText, /HTTP 503/);
+    w.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    await w.sendMessage();
+    assert.equal(input.value, 'Hello');
+    assert.match(w.document.getElementById('toast').innerText, /соединения/);
+  } finally { dom.window.close(); }
+});
+test('AI chat uses configured endpoint, keeps key out of storage and stores history locally', async () => {
+  const dom = await app({user:'alice'}); const w = dom.window;
+  try {
+    w.openChat('ai','AI');
+    w.openAISettings();
+    const form = w.document.querySelector('.ai-form');
+    const [endpoint, model, key] = form.querySelectorAll('input');
+    endpoint.value='https://ai.example.com/v1/chat/completions';
+    model.value='test-model'; key.value='test-key';
+    form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+    assert.equal(w.localStorage.getItem('ai-endpoint'), endpoint.value);
+    assert.ok(!Object.values(w.localStorage).includes('test-key'));
+    let request;
+    w.fetch = async (url, options) => { request = {url, options}; return {ok:true,json:async()=>({choices:[{message:{content:'Hello!'}}]})}; };
+    const input = w.document.getElementById('msg-input'); input.value='Hi';
+    await w.sendMessage();
+    assert.equal(request.url, endpoint.value);
+    assert.equal(request.options.headers.Authorization,'Bearer test-key');
+    assert.equal(JSON.parse(request.options.body).messages[0].content,'Hi');
+    const history = JSON.parse(w.localStorage.getItem('ai-history:alice'));
+    assert.deepEqual(history.map(x => x.role),['user','assistant']);
+    assert.equal(history[1].content,'Hello!');
+    assert.match(w.document.getElementById('messages-container').textContent,/Hello!/);
+  } finally { dom.window.close(); }
+});
+test('AI rejects insecure endpoint and does not transmit input without configuration', async () => {
+  const dom = await app({user:'alice'}); const w = dom.window;
+  try {
+    w.openChat('ai','AI'); const input = w.document.getElementById('msg-input'); input.value='private';
+    let called = false; w.fetch = async () => { called=true; throw new Error('unexpected'); };
+    await w.sendMessage(); assert.equal(called,false); assert.equal(input.value,'private');
+    const form=w.document.querySelector('.ai-form'); const fields=form.querySelectorAll('input');
+    fields[0].value='http://example.com/api'; fields[1].value='model';
+    form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+    assert.equal(w.localStorage.getItem('ai-endpoint'),null);
+  } finally { dom.window.close(); }
+});
