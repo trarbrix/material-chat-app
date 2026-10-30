@@ -162,20 +162,20 @@ test('authentication menus transition in sequence and ignore rapid repeat clicks
     assert.equal(start.style.display, 'flex');
     assert.ok(!form.classList.contains('active'));
     w.showForm(false);
-    await new Promise(resolve => setTimeout(resolve, 210));
+    await new Promise(resolve => setTimeout(resolve, 390));
     assert.equal(start.style.display, 'none');
     assert.ok(form.classList.contains('active'));
     assert.ok(form.classList.contains('auth-step-enter'));
     assert.equal(w.document.getElementById('chat-nick-field').style.display, 'none');
-    await new Promise(resolve => setTimeout(resolve, 280));
+    await new Promise(resolve => setTimeout(resolve, 450));
     w.closeForm();
     assert.ok(form.classList.contains('auth-step-leave'));
-    await new Promise(resolve => setTimeout(resolve, 210));
+    await new Promise(resolve => setTimeout(resolve, 390));
     assert.equal(start.style.display, 'flex');
     assert.ok(!form.classList.contains('active'));
-    await new Promise(resolve => setTimeout(resolve, 280));
+    await new Promise(resolve => setTimeout(resolve, 450));
     w.showForm(false);
-    await new Promise(resolve => setTimeout(resolve, 210));
+    await new Promise(resolve => setTimeout(resolve, 390));
     assert.equal(w.document.getElementById('chat-nick-field').style.display, 'block');
   } finally { dom.window.close(); }
 });
