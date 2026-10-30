@@ -134,6 +134,17 @@
 
         .auth-form { display: none; flex-direction: column; gap: 12px; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
         .auth-form.active { display: flex; opacity: 1; transform: translateY(0); }
+        .auth-card { transition: height 260ms cubic-bezier(.2, 0, 0, 1); }
+        .auth-card.auth-transitioning { pointer-events: none; }
+        .auth-form, #start-buttons { flex-shrink: 0; }
+        .auth-step-leave { animation: authStepOut 180ms ease-in both; }
+        .auth-step-enter { animation: authStepIn 260ms cubic-bezier(.2, 0, 0, 1) both; }
+        @keyframes authStepOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
+        @keyframes authStepIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) {
+            .auth-card { transition: none; }
+            .auth-step-leave, .auth-step-enter { animation: none; }
+        }
 
         /* СПИСОК ЧАТОВ */
         .chat-list { flex-grow: 1; overflow-y: auto; padding: 8px 16px 100px 16px; display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 2; }
@@ -1142,19 +1153,70 @@ function renderEmoji() {
     }
 
     // --- АВТОРИЗАЦИЯ ---
+    let authTransitioning = false;
+    function authMotionEnabled() {
+        return !document.body.classList.contains('no-animations') &&
+            !document.body.classList.contains('power-saving') &&
+            !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    function transitionAuthStep(toForm, prepare) {
+        if (authTransitioning) return;
+        const card = document.querySelector('.auth-card');
+        const start = document.getElementById('start-buttons');
+        const form = document.getElementById('auth-form');
+        const leaving = toForm ? start : form;
+        const entering = toForm ? form : start;
+        const animated = authMotionEnabled();
+        authTransitioning = true;
+        card.classList.add('auth-transitioning');
+        card.setAttribute('aria-busy', 'true');
+
+        const swap = () => {
+            leaving.classList.remove('auth-step-leave');
+            const oldHeight = card.getBoundingClientRect().height;
+            if (prepare) prepare();
+            start.style.display = toForm ? 'none' : 'flex';
+            form.classList.toggle('active', toForm);
+            if (!animated) {
+                card.classList.remove('auth-transitioning');
+                card.removeAttribute('aria-busy');
+                authTransitioning = false;
+                return;
+            }
+            const newHeight = card.getBoundingClientRect().height;
+            if (oldHeight && newHeight && oldHeight !== newHeight) {
+                card.style.height = oldHeight + 'px';
+                void card.offsetHeight;
+                card.style.height = newHeight + 'px';
+            }
+            entering.classList.add('auth-step-enter');
+            setTimeout(() => {
+                entering.classList.remove('auth-step-enter');
+                card.style.height = '';
+                card.classList.remove('auth-transitioning');
+                card.removeAttribute('aria-busy');
+                authTransitioning = false;
+            }, 260);
+        };
+
+        if (!animated) return swap();
+        leaving.classList.add('auth-step-leave');
+        setTimeout(swap, 180);
+    }
+
     function showForm(isLogin) {
-        authMode = isLogin ? "login" : "register";
-        document.getElementById("start-buttons").style.display = "none";
-        document.getElementById("auth-form").classList.add("active");
-        document.getElementById("chat-nick-field").style.display = isLogin ? "none" : "block";
-        document.getElementById("code-field").style.display = "none";
-        document.getElementById("btn-submit").innerText = isLogin ? t("Войти") : t("Получить код");
-        codeRequested = false;
+        transitionAuthStep(true, () => {
+            authMode = isLogin ? "login" : "register";
+            document.getElementById("chat-nick-field").style.display = isLogin ? "none" : "block";
+            document.getElementById("code-field").style.display = "none";
+            document.getElementById("btn-submit").innerText = isLogin ? t("Войти") : t("Получить код");
+            codeRequested = false;
+        });
     }
 
     function closeForm() {
-        document.getElementById("start-buttons").style.display = "flex";
-        document.getElementById("auth-form").classList.remove("active");
+        transitionAuthStep(false);
     }
 
     async function submitAuth() {

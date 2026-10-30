@@ -152,3 +152,41 @@ test('polling backs off after failures and stops in hidden tabs', async () => {
     assert.equal(timers.length, count + 1);
   } finally { dom.window.close(); }
 });
+test('authentication menus transition in sequence and ignore rapid repeat clicks', async () => {
+  const dom = await app(); const w = dom.window;
+  try {
+    const start = w.document.getElementById('start-buttons');
+    const form = w.document.getElementById('auth-form');
+    w.showForm(true);
+    assert.ok(start.classList.contains('auth-step-leave'));
+    assert.equal(start.style.display, 'flex');
+    assert.ok(!form.classList.contains('active'));
+    w.showForm(false);
+    await new Promise(resolve => setTimeout(resolve, 210));
+    assert.equal(start.style.display, 'none');
+    assert.ok(form.classList.contains('active'));
+    assert.ok(form.classList.contains('auth-step-enter'));
+    assert.equal(w.document.getElementById('chat-nick-field').style.display, 'none');
+    await new Promise(resolve => setTimeout(resolve, 280));
+    w.closeForm();
+    assert.ok(form.classList.contains('auth-step-leave'));
+    await new Promise(resolve => setTimeout(resolve, 210));
+    assert.equal(start.style.display, 'flex');
+    assert.ok(!form.classList.contains('active'));
+    await new Promise(resolve => setTimeout(resolve, 280));
+    w.showForm(false);
+    await new Promise(resolve => setTimeout(resolve, 210));
+    assert.equal(w.document.getElementById('chat-nick-field').style.display, 'block');
+  } finally { dom.window.close(); }
+});
+test('authentication menus switch immediately with animations disabled', async () => {
+  const dom = await app({anim:'false'}); const w = dom.window;
+  try {
+    w.showForm(true);
+    assert.equal(w.document.getElementById('start-buttons').style.display, 'none');
+    assert.ok(w.document.getElementById('auth-form').classList.contains('active'));
+    w.closeForm();
+    assert.equal(w.document.getElementById('start-buttons').style.display, 'flex');
+    assert.ok(!w.document.getElementById('auth-form').classList.contains('active'));
+  } finally { dom.window.close(); }
+});
