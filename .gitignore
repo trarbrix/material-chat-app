@@ -8,3 +8,4 @@ android-app/local.properties
 android-app/**/build/
 *.jks
 *.keystore
+desktop/dist/

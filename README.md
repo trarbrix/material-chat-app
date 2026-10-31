@@ -48,3 +48,7 @@
 ## Linux AppImage
 
 [`downloads/Material-Chat-x86_64.AppImage`](downloads/Material-Chat-x86_64.AppImage) — лёгкая бета для Linux x86-64 с нашей иконкой. Она использует установленный Chromium, Google Chrome, Brave или Microsoft Edge и требует Python 3.7+. Команды запуска и подробности: [`linux-app/README.md`](linux-app/README.md). В графическом сеансе эта сборка пока не проверялась; работа с сервером зависит от CORS и Cloudflare.
+
+## Другие настольные системы
+
+Исходники Electron-версии и инструкции для сборки Windows, macOS, Debian и Fedora находятся в [`desktop/README.md`](desktop/README.md). GitHub Actions собирает временные артефакты, но не публикует их как релиз автоматически. Неподписанные сборки и реальные подключения к серверу необходимо проверить на устройствах перед публикацией.
