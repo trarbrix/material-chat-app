@@ -225,9 +225,10 @@ test('profile editor saves nickname and handle to the server, not local storage'
       return {ok:true,json:async()=>({nickname:'',handle:'',avatar:''})};
     };
     await w.openProfileEditor();
-    const form=w.document.querySelector('.profile-form');
-    const [nickname,handle]=form.querySelectorAll('input[type=text]'); nickname.value='Alice A'; handle.value='@Alice_123';
-    await form.onsubmit({preventDefault(){}});
+    assert.ok(w.document.getElementById('profile-screen').classList.contains('active'));
+    const nickname=w.document.getElementById('edit-profile-nickname'); const handle=w.document.getElementById('edit-profile-handle');
+    nickname.value='Alice A'; handle.value='@Alice_123';
+    await w.saveProfileDirect();
     assert.deepEqual(saved.data,{nickname:'Alice A',handle:'alice_123',avatar:''});
     assert.equal(saved.headers.Authorization,'Bearer test-token');
     assert.equal(w.document.getElementById('profile-display-name').textContent,'Alice A');
@@ -277,13 +278,79 @@ test('existing sessions ask for a password before editing a shared profile', asy
     let sessionBody;
     w.fetch = async (url,options={}) => {
       if (url.endsWith('/profile/session')) { sessionBody=JSON.parse(options.body); return {ok:true,json:async()=>({token:'new-token'})}; }
-      if (url.endsWith('/profile/me')) return {ok:true,json:async()=>({nickname:'Alice',handle:'alice',avatar:''})};
+      if (url.includes('/profile/me')) return {ok:true,json:async()=>({nickname:'Alice',handle:'alice',avatar:''})};
       throw Error('unexpected request');
     };
     await form.onsubmit({preventDefault(){}});
     assert.deepEqual(sessionBody,{identifier:'alice',password:'secret'});
     assert.equal(w.sessionStorage.getItem('profile-token'),'new-token');
     assert.equal(w.localStorage.getItem('password'),null);
-    assert.ok(w.document.querySelector('.profile-form input[type=file]'));
+    assert.ok(w.document.getElementById('profile-screen').classList.contains('active'));
+    assert.equal(w.document.getElementById('profile-edit-card').style.display, 'flex');
+  } finally { dom.window.close(); }
+});
+
+test('mobile screens navigate independently and desktop layout remains unchanged', async () => {
+  const dom = await app({user:'alice'}); const w = dom.window;
+  try {
+    const ids = ['main-screen', 'settings-screen', 'chat-screen'];
+    const active = () => ids.filter(id => w.document.getElementById(id).classList.contains('active'));
+    assert.deepEqual(active(), ['main-screen']);
+    w.switchScreen('settings-screen', w.document.getElementById('nav-settings'));
+    assert.deepEqual(active(), ['settings-screen']);
+    w.switchScreen('main-screen', w.document.getElementById('nav-chats'));
+    w.openChat('global', 'Global Chat');
+    assert.deepEqual(active(), ['chat-screen']);
+    w.closeChat();
+    assert.deepEqual(active(), ['main-screen']);
+    assert.match(w.document.querySelector('style').textContent, /@media\s*\(max-width:\s*600px\)/);
+  } finally { dom.window.close(); }
+});
+
+test('ported themes and reaction preferences persist', async () => {
+  const dom = await app(); const w = dom.window;
+  try {
+    w.setTheme('emerald');
+    assert.ok(w.document.body.classList.contains('theme-emerald'));
+    assert.equal(w.localStorage.getItem('theme'), 'emerald');
+    w.document.getElementById('reactions-visible').click();
+    assert.equal(w.localStorage.getItem('reactions-visible'), 'false');
+    assert.ok(w.document.body.classList.contains('no-reactions'));
+    const tint=w.document.getElementById('custom-tint'); tint.value='71';
+    w.applyCustomColor('#123456');
+    assert.equal(w.localStorage.getItem('theme-color'), '#123456');
+    assert.equal(w.localStorage.getItem('theme-tint'), '71');
+    assert.equal(w.localStorage.getItem('theme'), 'custom');
+  } finally { dom.window.close(); }
+});
+
+test('failed code requests never show a fake code or sign the user in', async () => {
+  const dom = await app({anim:'false'}); const w = dom.window;
+  try {
+    w.showForm(false);
+    w.document.getElementById('input-tg').value = 'alice';
+    w.document.getElementById('input-pass').value = 'password';
+    w.fetch = async () => ({ok:true, status:200, json:async()=>({status:'error',detail:'Нажми /start в боте'})});
+    await w.submitAuth();
+    assert.equal(w.document.getElementById('code-field').style.display, 'none');
+    assert.equal(w.document.getElementById('input-code').value, '');
+    assert.equal(w.localStorage.getItem('user'), null);
+    w.fetch = async () => { throw new Error('offline'); };
+    await w.submitAuth();
+    assert.equal(w.localStorage.getItem('user'), null);
+    assert.ok(w.document.getElementById('auth-screen').classList.contains('active'));
+  } finally { dom.window.close(); }
+});
+
+test('switching accounts does not reuse another account token', async () => {
+  const dom = await app({user:'alice',anim:'false'}); const w = dom.window;
+  try {
+    w.sessionStorage.setItem('profile-token','alice-token');
+    w.sessionStorage.setItem('profile-token-owner','alice');
+    w.switchAccount('bob');
+    assert.equal(w.localStorage.getItem('user'), null);
+    assert.equal(w.sessionStorage.getItem('profile-token'), null);
+    assert.ok(w.document.getElementById('auth-screen').classList.contains('active'));
+    assert.equal(w.document.getElementById('input-tg').value, 'bob');
   } finally { dom.window.close(); }
 });
