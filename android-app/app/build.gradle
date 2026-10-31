@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.materialchat.variantb'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'app.materialchat.variantb'
+        minSdk 26
+        targetSdk 32
+        versionCode 1
+        versionName '1.0-beta'
+    }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/chatAssets')
+}
+
+def copyChatHtml = tasks.register('copyChatHtml', Copy) {
+    from rootProject.file('../variant-b.html')
+    into layout.buildDirectory.dir('generated/chatAssets')
+}
+tasks.named('preBuild').configure { dependsOn copyChatHtml }

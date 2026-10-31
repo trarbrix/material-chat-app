@@ -563,7 +563,7 @@ const translations = {
   const dbKey = "mc-local-db-v1";
   let user = localStorage.getItem("user") || "";
   let token = sessionStorage.getItem("profile-token-owner") === user ? sessionStorage.getItem("profile-token") || "" : "";
-  const API_BASE = location.protocol === 'file:' || ['localhost','127.0.0.1','[::1]'].includes(location.hostname) ? 'https://material-caht.onrender.com/api' : '/api';
+  const API_BASE = location.protocol === 'file:' || ['localhost','127.0.0.1','[::1]','appassets.androidplatform.net'].includes(location.hostname) ? 'https://material-caht.onrender.com/api' : '/api';
   let profile = {
     nickname: user,
     handle: user,

@@ -4,9 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {JSDOM,VirtualConsole} = require('jsdom');
 const html=fs.readFileSync(path.join(__dirname,'..','variant-b.html'),'utf8');
-async function app({user='', fetch:mock, session={}, initial={}, setup}={}) {
+async function app({user='', fetch:mock, session={}, initial={}, setup, url='http://localhost/variant-b.html'}={}) {
   const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e));
-  const dom=new JSDOM(html,{url:'http://localhost/variant-b.html',runScripts:'dangerously',virtualConsole:vc,beforeParse(w){
+  const dom=new JSDOM(html,{url,runScripts:'dangerously',virtualConsole:vc,beforeParse(w){
     w.localStorage.setItem('anim','false');if(user)w.localStorage.setItem('user',user);
     Object.entries(session).forEach(([k,v])=>w.sessionStorage.setItem(k,v));
     Object.entries(initial).forEach(([k,v])=>w.localStorage.setItem(k,v));if(setup)setup(w);
@@ -149,5 +149,12 @@ test('a storage failure does not replace the previous wallpaper',async()=>{
   w.document.getElementById('settings-button').click();openSection(w,'appearance');const input=w.document.querySelector('[data-wallpaper-input]');Object.defineProperty(input,'files',{value:[new w.File(['x'],'a.jpg',{type:'image/jpeg'})]});input.dispatchEvent(new w.Event('change'));await new Promise(resolve=>setTimeout(resolve,20));
   assert.equal(w.localStorage.getItem('vb-wallpaper-image'),original);assert.equal(w.localStorage.getItem('vb-wallpaper-mode'),'custom');assert.ok(w.document.getElementById('conversation').style.backgroundImage.includes(original));assert.ok(w.document.getElementById('toast-text').textContent.includes('недостаточно места'));
   proto.setItem=real;
+ }finally{w.close();}
+});
+
+ test('Android app-assets origin sends API requests to the real HTTPS server',async()=>{
+ let requests=[];const dom=await app({url:'https://appassets.androidplatform.net/index.html',fetch:async(url)=>{requests.push(url);return response({status:'error',detail:'test'});}});const w=dom.window;try{
+  w.showForm(false);w.document.getElementById('input-tg').value='alice';w.document.getElementById('input-pass').value='password';await w.submitAuth();
+  assert.ok(requests.includes('https://material-caht.onrender.com/api/send_code'));
  }finally{w.close();}
 });
