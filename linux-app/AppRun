@@ -1,0 +1,9 @@
+#!/bin/sh
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if ! command -v python3 >/dev/null 2>&1; then
+    msg='Material Chat requires Python 3 and Chromium, Google Chrome or Brave.'
+    echo "$msg" >&2
+    if command -v zenity >/dev/null 2>&1; then zenity --error --title='Material Chat' --text="$msg"; fi
+    exit 1
+fi
+exec python3 "$HERE/launcher.py"

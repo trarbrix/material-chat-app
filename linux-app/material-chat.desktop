@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Material Chat
+Comment=Material Chat beta
+Exec=AppRun
+Icon=material-chat
+Categories=Network;Chat;
+Terminal=false
+StartupWMClass=MaterialChat

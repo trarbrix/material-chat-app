@@ -44,3 +44,7 @@
 Бета-сборка варианта B с фиолетовой иконкой: [`downloads/Material-Chat-beta.apk`](downloads/Material-Chat-beta.apk). Требуется Android 8 или новее и актуальный Android System WebView. Исходный Android-проект и инструкции сборки: [`android-app/README.md`](android-app/README.md). Это отдельное приложение; локальные настройки из браузера или другого APK автоматически не переносятся. Не удаляйте старое приложение без резервной копии данных. Последующие обновления этого APK должны быть подписаны тем же ключом.
 
 Подпись и содержимое APK проверены инструментами сборки; на реальном Android-устройстве сборка ещё не проверялась. Работа входа и сообщений зависит от доступности сервера, его CORS и защиты Cloudflare; APK не устраняет серверные ограничения.
+
+## Linux AppImage
+
+[`downloads/Material-Chat-x86_64.AppImage`](downloads/Material-Chat-x86_64.AppImage) — лёгкая бета для Linux x86-64 с нашей иконкой. Она использует установленный Chromium, Google Chrome, Brave или Microsoft Edge и требует Python 3.7+. Команды запуска и подробности: [`linux-app/README.md`](linux-app/README.md). В графическом сеансе эта сборка пока не проверялась; работа с сервером зависит от CORS и Cloudflare.
