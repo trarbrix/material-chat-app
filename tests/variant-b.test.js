@@ -4,11 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {JSDOM,VirtualConsole} = require('jsdom');
 const html=fs.readFileSync(path.join(__dirname,'..','variant-b.html'),'utf8');
-async function app({user='', fetch:mock, session={}}={}) {
+async function app({user='', fetch:mock, session={}, initial={}, setup}={}) {
   const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e));
   const dom=new JSDOM(html,{url:'http://localhost/variant-b.html',runScripts:'dangerously',virtualConsole:vc,beforeParse(w){
     w.localStorage.setItem('anim','false');if(user)w.localStorage.setItem('user',user);
     Object.entries(session).forEach(([k,v])=>w.sessionStorage.setItem(k,v));
+    Object.entries(initial).forEach(([k,v])=>w.localStorage.setItem(k,v));if(setup)setup(w);
     w.fetch=mock|| (async()=>({ok:true,status:200,json:async()=>[]}));
     w.confirm=()=>true;w.prompt=()=>null;w.HTMLElement.prototype.scrollIntoView=function(){};
   }});
@@ -17,6 +18,8 @@ async function app({user='', fetch:mock, session={}}={}) {
 }
 function response(data,status=200){return {ok:status>=200&&status<300,status,json:async()=>data};}
 function buttonByText(w,text,root=w.document){return [...root.querySelectorAll('button')].find(b=>b.textContent.trim()===text);}
+function openSection(w,id){const button=w.document.querySelector(`[data-settings-section="${id}"]`);assert.ok(button,'section '+id);button.click();}
+function settingsBack(w){w.document.querySelector('.vb-settings-back').click();}
 test('new variant starts with the original registration dialog, and uses separate mobile panes',async()=>{
  const dom=await app();const w=dom.window;try{
   assert.equal(w.document.getElementById('auth-screen').hidden,false);
@@ -52,13 +55,18 @@ test('network failure does not switch to fake local authentication or overwrite 
   assert.equal(w.localStorage.getItem('user'),null);assert.equal(w.localStorage.getItem('mc-local-db-v1'),old);assert.equal(w.document.getElementById('auth-screen').hidden,false);
  }finally{w.close();}
 });
-test('settings include languages, privacy, power, folders and animation controls',async()=>{
+test('settings are grouped with usable back navigation and without the old link',async()=>{
  const dom=await app({user:'alice'});const w=dom.window;try{
   w.document.getElementById('settings-button').click();const body=w.document.getElementById('detail-body');
-  for(const text of ['Папки чатов','Конфиденциальность','Энергосбережение','Анимация сообщений','Фон чата'])assert.ok(body.textContent.includes(text),text);
-  assert.equal(body.querySelector('#settings-language').options.length,5);
-  buttonByText(w,'Режим энергосбережения',body).click();assert.equal(w.localStorage.getItem('power-saving'),'true');
+  for(const id of ['appearance','privacy','chats','folders','language','power','account','ai','application'])assert.ok(body.querySelector(`[data-settings-section="${id}"]`),id);
+  assert.equal(body.textContent.includes('Открыть исходный интерфейс'),false);assert.equal(body.querySelector('a[href="./manager.html"]'),null);
+  openSection(w,'privacy');assert.ok(body.textContent.includes('Скрывать сообщения'));assert.equal(body.querySelector('[data-settings-section]'),null);
+  buttonByText(w,'Скрывать сообщения (наведите для просмотра)',body).click();assert.equal(w.localStorage.getItem('privacy-blur'),'true');assert.ok(w.document.getElementById('app').classList.contains('vb-private-blur'));
+  settingsBack(w);openSection(w,'language');assert.equal(body.querySelector('#settings-language').options.length,5);
+  settingsBack(w);openSection(w,'power');buttonByText(w,'Режим энергосбережения',body).click();assert.equal(w.localStorage.getItem('power-saving'),'true');
+  settingsBack(w);openSection(w,'chats');assert.ok(body.textContent.includes('Анимация сообщений'));
   w.setLanguage('fr');assert.equal(w.document.documentElement.lang,'fr');assert.equal(w.localStorage.getItem('language'),'fr');
+  w.document.getElementById('detail-close').click();assert.ok(body.querySelector('[data-settings-section="appearance"]'));assert.ok(w.document.getElementById('app').classList.contains('vb-mobile-details'));
  }finally{w.close();}
 });
 test('emoji picker searches full embedded catalog and inserts at caret',async()=>{
@@ -70,7 +78,7 @@ test('emoji picker searches full embedded catalog and inserts at caret',async()=
 test('folders keep the previous per-account storage and never delete chat data',async()=>{
  const dom=await app({user:'alice'});const w=dom.window;try{
   w.localStorage.setItem('chat-folders:alice',JSON.stringify([{id:'x',name:'Friends',chats:['global']}]));
-  w.document.getElementById('settings-button').click();buttonByText(w,'Управлять папкой').click();buttonByText(w,'Friends').click();
+  w.document.getElementById('settings-button').click();openSection(w,'folders');buttonByText(w,'Управлять папкой').click();buttonByText(w,'Friends').click();
   const checks=w.document.querySelectorAll('.vb-folder-check input');assert.equal(checks.length,3);assert.equal(checks[0].checked,true);checks[1].click();
   assert.deepEqual(JSON.parse(w.localStorage.getItem('chat-folders:alice'))[0].chats,['global','saved']);
  }finally{w.close();}
@@ -96,12 +104,50 @@ test('AI uses the configured HTTPS provider and keeps the key out of browser sto
 });
 test('settings are translated and profiles keep their account identity',async()=>{
  const dom=await app({user:'alice',session:{'profile-token':'tok','profile-token-owner':'alice'},fetch:async(url,opt={})=>{if(url.includes('/profile/me'))return response(opt.method==='PUT'?JSON.parse(opt.body):{nickname:'Alice',handle:'',avatar:''});return response([])}});const w=dom.window;try{
-  w.document.getElementById('settings-button').click();w.setLanguage('fr');assert.ok(w.document.getElementById('detail-body').textContent.includes('Mode sombre'));
+  w.document.getElementById('settings-button').click();openSection(w,'appearance');w.setLanguage('fr');assert.ok(w.document.getElementById('detail-body').textContent.includes('Mode sombre'));
   w.setLanguage('ru');w.document.getElementById('account-button').click();buttonByText(w,'✎  Редактировать профиль').click();const inputs=w.document.querySelectorAll('.vb-profile-actions input[type=text],.vb-profile-actions input:not([type])');inputs[0].value='Alice A';inputs[1].value='alice_123';const form=w.document.querySelector('.vb-profile-actions form')||w.document.querySelector('form.vb-profile-actions');form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(resolve=>setTimeout(resolve,15));assert.equal(w.localStorage.getItem('user'),'alice');assert.equal(w.sessionStorage.getItem('profile-token-owner'),'alice');
  }finally{w.close();}
 });
 test('unknown chat senders are not displayed as Telegram identifiers',async()=>{
  const dom=await app({user:'alice',fetch:async(url)=>{if(url.includes('/messages/global'))return response([{id:1,sender:'telegram_private_name',text:'hello'}]);if(url.includes('/profile/public/'))return response({},404);return response([])}});const w=dom.window;try{
   await new Promise(resolve=>setTimeout(resolve,20));const list=w.document.getElementById('message-list');assert.ok(list.textContent.includes('hello'));assert.equal(list.textContent.includes('telegram_private_name'),false);
+ }finally{w.close();}
+});
+test('wallpaper selection restores the saved image, changes locally and leaves the server untouched',async()=>{
+ const image='data:image/jpeg;base64,YWJj';let requests=[];
+ const dom=await app({user:'alice',initial:{'vb-wallpaper-image':image,'vb-wallpaper-mode':'custom'},fetch:async(url)=>{requests.push(url);return response([])}});const w=dom.window;try{
+  const conversation=w.document.getElementById('conversation');assert.ok(conversation.style.backgroundImage.includes(image));
+  w.document.getElementById('settings-button').click();openSection(w,'appearance');
+  assert.equal(w.document.querySelector('[data-wallpaper-preview]').dataset.wallpaperPreview,'custom');
+  const initialRequests=requests.length;
+  w.document.querySelector('[data-wallpaper-mode="plain"]').click();assert.equal(w.localStorage.getItem('vb-wallpaper-mode'),'plain');assert.equal(w.localStorage.getItem('bg-static'),'false');assert.equal(conversation.style.backgroundImage,'');
+  w.document.querySelector('[data-wallpaper-mode="custom"]').click();assert.equal(w.localStorage.getItem('vb-wallpaper-mode'),'custom');assert.ok(conversation.style.backgroundImage.includes(image));
+  w.document.querySelector('[data-wallpaper-remove]').click();assert.equal(w.localStorage.getItem('vb-wallpaper-image'),null);assert.equal(w.localStorage.getItem('vb-wallpaper-mode'),'pattern');assert.equal(conversation.style.backgroundImage,'');
+  assert.equal(requests.length,initialRequests);
+ }finally{w.close();}
+});
+test('upload resizes and saves a custom wallpaper locally and handles invalid files',async()=>{
+ const encoded='data:image/jpeg;base64,YWJj';let drawn;
+ const dom=await app({user:'alice',setup(w){
+  w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};
+  w.Image=class {constructor(){this.naturalWidth=2880;this.naturalHeight=1440;}set src(v){setTimeout(()=>this.onload(),0)}};
+  w.HTMLCanvasElement.prototype.getContext=function(){return {drawImage:(_img,x,y,width,height)=>drawn={x,y,width,height}}};
+  w.HTMLCanvasElement.prototype.toDataURL=()=>encoded;
+ }});const w=dom.window;try{
+  w.document.getElementById('settings-button').click();openSection(w,'appearance');
+  const input=w.document.querySelector('[data-wallpaper-input]');Object.defineProperty(input,'files',{value:[new w.File(['x'],'a.png',{type:'image/png'})]});input.dispatchEvent(new w.Event('change'));
+  await new Promise(resolve=>setTimeout(resolve,20));assert.deepEqual(drawn,{x:0,y:0,width:1440,height:720});assert.equal(w.localStorage.getItem('vb-wallpaper-image'),encoded);assert.equal(w.localStorage.getItem('vb-wallpaper-mode'),'custom');assert.ok(w.document.getElementById('conversation').style.backgroundImage.includes(encoded));
+  const invalid=w.document.querySelector('[data-wallpaper-input]');Object.defineProperty(invalid,'files',{value:[new w.File(['x'],'bad.svg',{type:'image/svg+xml'})]});invalid.dispatchEvent(new w.Event('change'));assert.equal(w.localStorage.getItem('vb-wallpaper-image'),encoded);assert.ok(w.document.getElementById('toast-text').textContent.includes('PNG'));
+ }finally{w.close();}
+});
+test('a storage failure does not replace the previous wallpaper',async()=>{
+ const original='data:image/jpeg;base64,b2xk';const dom=await app({user:'alice',initial:{'vb-wallpaper-image':original,'vb-wallpaper-mode':'custom'},setup(w){
+  w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.Image=class {constructor(){this.naturalWidth=100;this.naturalHeight=100;}set src(v){setTimeout(()=>this.onload(),0)}};
+  w.HTMLCanvasElement.prototype.getContext=()=>({drawImage(){}});w.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/jpeg;base64,bmV3';
+ }});const w=dom.window;try{
+  const proto=Object.getPrototypeOf(w.localStorage), real=proto.setItem;proto.setItem=function(k,v){if(k==='vb-wallpaper-image')throw new Error('quota');return real.call(this,k,v)};
+  w.document.getElementById('settings-button').click();openSection(w,'appearance');const input=w.document.querySelector('[data-wallpaper-input]');Object.defineProperty(input,'files',{value:[new w.File(['x'],'a.jpg',{type:'image/jpeg'})]});input.dispatchEvent(new w.Event('change'));await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(w.localStorage.getItem('vb-wallpaper-image'),original);assert.equal(w.localStorage.getItem('vb-wallpaper-mode'),'custom');assert.ok(w.document.getElementById('conversation').style.backgroundImage.includes(original));assert.ok(w.document.getElementById('toast-text').textContent.includes('недостаточно места'));
+  proto.setItem=real;
  }finally{w.close();}
 });

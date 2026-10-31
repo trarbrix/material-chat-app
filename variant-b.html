@@ -236,7 +236,6 @@
 .vb-theme-preview .vb-section-label { margin: 0 0 7px; }
 .vb-preview-bubble { align-self: flex-start; border-radius: 9px 9px 9px 3px; padding: 8px 9px; background: var(--vb-card); border: 1px solid var(--vb-border); font-size: 9px; }
 .vb-preview-bubble.mine { align-self: flex-end; color: #fff; background: var(--vb-accent); border-color: var(--vb-accent); border-radius: 9px 9px 3px 9px; }
-.vb-version-link { display: flex; align-items: center; justify-content: center; gap: 5px; text-decoration: none; font-size: 10px; color: var(--vb-accent); padding: 12px 0; font-weight: 700; }
 
 /* Menus and modals */
 .vb-menu-overlay, .vb-modal-scrim { position: fixed; inset: 0; z-index: 100; }
@@ -348,6 +347,33 @@
 .vb-private-blur .vb-bubble{filter:blur(7px)}.vb-private-blur .vb-bubble:hover,.vb-private-blur .vb-bubble:focus-within{filter:none}.vb-private-name #sidebar-avatar,.vb-private-name #sidebar-name,.vb-private-name #sidebar-handle,.vb-private-name .vb-profile-hero h2,.vb-private-name .vb-profile-hero p{filter:blur(6px)}.vb-no-motion *,.vb-no-motion *::before,.vb-no-motion *::after{animation-duration:0s!important;transition-duration:0s!important}.vb-square-inputs .vb-composer,.vb-square-inputs .vb-modal-field{border-radius:4px}.vb-input-surface .vb-composer{background:var(--vb-card)}.vb-no-background .vb-conversation{background-image:none}
 .vb-message-new{animation:vbMessage .28s ease-out}@keyframes vbMessage{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media(max-width:620px){.vb-app.vb-mobile-details .vb-main{display:none}.vb-app.vb-mobile-details .vb-detail{display:flex;position:fixed;inset:0;width:100%;height:100dvh}.vb-detail-head{padding-top:env(safe-area-inset-top);height:calc(69px + env(safe-area-inset-top))}.vb-sidebar-bottom{padding-bottom:max(10px,env(safe-area-inset-bottom))}}
+
+
+.vb-custom-wallpaper .vb-conversation { animation: none !important; }
+.vb-settings-menu { display:flex; flex-direction:column; gap:5px; padding:16px 0 24px; }
+.vb-settings-category { width:100%; border:0; border-radius:12px; background:transparent; color:var(--vb-ink); display:flex; align-items:center; gap:12px; padding:12px 9px; text-align:left; }
+.vb-settings-category:hover,.vb-settings-category:focus-visible { background:var(--vb-subtle); }
+.vb-settings-category-icon { display:grid; place-items:center; flex:none; width:38px; height:38px; border-radius:11px; color:var(--vb-accent); background:var(--vb-tint); font-size:19px; font-weight:700; }
+.vb-settings-category-text { display:flex; flex:1; min-width:0; flex-direction:column; gap:3px; }
+.vb-settings-category-text strong { font-size:11px; font-weight:800; }
+.vb-settings-category-text small { font-size:9px; color:var(--vb-soft); line-height:1.4; }
+.vb-settings-category-chevron { color:var(--vb-muted); font-size:21px; }
+.vb-settings-subheading { display:flex; align-items:center; gap:11px; padding:22px 0 17px; border-bottom:1px solid var(--vb-border); }
+.vb-settings-subheading h2 { font:800 16px/1.3 'Manrope',sans-serif; margin:0; letter-spacing:-.5px; }
+.vb-settings-back { border:0; width:34px; height:34px; border-radius:10px; background:var(--vb-subtle); color:var(--vb-accent); font-size:19px; }
+.vb-settings-note { display:block; margin:10px 0; font-size:10px; color:var(--vb-soft); line-height:1.6; }
+.vb-wallpaper-preview { height:125px; border:1px solid var(--vb-border); border-radius:12px; display:flex; align-items:flex-end; padding:12px; background-color:var(--vb-subtle); background-image:radial-gradient(color-mix(in srgb,var(--vb-accent) 14%,transparent) .8px,transparent .8px); background-size:20px 20px; background-position:center; overflow:hidden; }
+.vb-wallpaper-preview[data-wallpaper-preview=plain] { background-image:none; }
+.vb-wallpaper-preview[data-wallpaper-preview=custom] { background-size:cover; background-position:center; }
+.vb-wallpaper-preview { flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:6px; }
+.vb-wallpaper-bubble.mine { align-self:flex-end; color:#fff; background:var(--vb-accent); border-radius:10px 10px 2px 10px; }
+.vb-wallpaper-bubble { border-radius:10px 10px 10px 2px; background:var(--vb-card); color:var(--vb-ink); padding:8px 10px; font-size:10px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
+.vb-wallpaper-choices { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.vb-wallpaper-choice { border:1px solid var(--vb-border); color:var(--vb-soft); border-radius:9px; padding:8px 10px; background:var(--vb-card); font-size:10px; font-weight:700; }
+.vb-wallpaper-choice.selected { color:var(--vb-accent); border-color:var(--vb-accent); background:var(--vb-tint); }
+.vb-wallpaper-upload { display:flex; justify-content:center; align-items:center; margin-top:12px; padding:10px 12px; border:1px solid var(--vb-border); border-radius:9px; color:var(--vb-accent); cursor:pointer; font-size:10px; font-weight:800; }
+.vb-wallpaper-upload:focus-within { outline:3px solid color-mix(in srgb,var(--vb-accent) 26%,transparent); outline-offset:2px; }
+.vb-wallpaper-upload input { position:absolute; width:1px; height:1px; opacity:0; }
 
 </style>
 </head>
@@ -676,7 +702,6 @@ Object.assign(translations, {
     'ПРЕДПРОСМОТР ТЕМЫ':['THEME PREVIEW','DESIGNVORSCHAU','ПЕРЕГЛЯД ТЕМИ','APERÇU DU THÈME'],
     'Привет! Как тебе новый цвет? ✨':['Hi! Do you like the new color? ✨','Hallo! Gefällt dir die neue Farbe? ✨','Привіт! Як тобі новий колір? ✨','Salut ! Tu aimes la nouvelle couleur ? ✨'],
     'Выглядит отлично!':['Looks great!','Sieht toll aus!','Виглядає чудово!','C’est superbe !'],
-    'Открыть исходный интерфейс →':['Open the previous interface →','Vorherige Oberfläche öffnen →','Відкрити попередній інтерфейс →','Ouvrir l’interface précédente →'],
     'Добавить аккаунт':['Add account','Konto hinzufügen','Додати акаунт','Ajouter un compte'],
     'Выйти из текущего аккаунта?':['Sign out of the current account?','Aktuelles Konto abmelden?','Вийти з поточного акаунта?','Se déconnecter du compte actuel ?'],
     'Проверить бота Telegram':['Check Telegram bot','Telegram-Bot prüfen','Перевірити бота Telegram','Vérifier le bot Telegram'],
@@ -691,6 +716,25 @@ Object.assign(translations, {
     'Укажите HTTPS-адрес и модель':['Enter an HTTPS address and model','HTTPS-Adresse und Modell eingeben','Вкажіть HTTPS-адресу та модель','Indiquez une adresse HTTPS et un modèle'],
     'Настройте ИИ перед отправкой':['Configure AI before sending','KI vor dem Senden konfigurieren','Налаштуйте ШІ перед надсиланням','Configurez l’IA avant l’envoi'],
     'Нет ответа от модели':['No response from the model','Keine Antwort vom Modell','Немає відповіді від моделі','Aucune réponse du modèle'],
+    'Темы и обои':['Themes and wallpaper','Design und Hintergrund','Теми та шпалери','Thèmes et fonds d’écran'],
+    'Цвета, обои и внешний вид':['Colors, wallpaper and appearance','Farben, Hintergrund und Darstellung','Кольори, шпалери та вигляд','Couleurs, fond et apparence'],
+    'Скрытие сообщений и имени':['Hide messages and name','Nachrichten und Namen verbergen','Приховування повідомлень та імені','Masquer les messages et le nom'],
+    'Реакции и анимации сообщений':['Reactions and message animations','Reaktionen und Nachrichtenanimationen','Реакції та анімації повідомлень','Réactions et animations des messages'],
+    'Управление папками':['Manage folders','Ordner verwalten','Керування папками','Gérer les dossiers'],
+    'Меньше анимаций и запросов':['Fewer animations and requests','Weniger Animationen und Anfragen','Менше анімацій і запитів','Moins d’animations et de requêtes'],
+    'Профиль и вход':['Profile and sign-in','Profil und Anmeldung','Профіль і вхід','Profil et connexion'],
+    'Установка и Telegram-бот':['Installation and Telegram bot','Installation und Telegram-Bot','Встановлення і Telegram-бот','Installation et bot Telegram'],
+    'Назад к настройкам':['Back to settings','Zurück zu den Einstellungen','Назад до налаштувань','Retour aux paramètres'],
+    'Обои чата':['Chat wallpaper','Chat-Hintergrund','Шпалери чату','Fond de la discussion'],
+    'Привет! Как тебе новые обои?':['Hi! Do you like the new wallpaper?','Hallo! Gefällt dir der neue Hintergrund?','Привіт! Як тобі нові шпалери?','Salut ! Tu aimes le nouveau fond ?'],
+    'Узор':['Pattern','Muster','Візерунок','Motif'],
+    'Без обоев':['No wallpaper','Kein Hintergrund','Без шпалер','Sans fond'],
+    'Свои обои':['Custom wallpaper','Eigener Hintergrund','Власні шпалери','Fond personnalisé'],
+    'Выбрать изображение':['Choose image','Bild auswählen','Обрати зображення','Choisir une image'],
+    'Удалить свои обои':['Remove custom wallpaper','Eigenen Hintergrund entfernen','Видалити власні шпалери','Supprimer le fond personnalisé'],
+    'Обои видны только на этом устройстве.':['Wallpaper is visible only on this device.','Der Hintergrund ist nur auf diesem Gerät sichtbar.','Шпалери видно лише на цьому пристрої.','Le fond est visible uniquement sur cet appareil.'],
+    'Не удалось сохранить обои: недостаточно места':['Could not save wallpaper: not enough storage','Hintergrund konnte nicht gespeichert werden: Speicherplatz fehlt','Не вдалося зберегти шпалери: недостатньо місця','Impossible d’enregistrer le fond : espace insuffisant'],
+    'Обои сохранены на этом устройстве':['Wallpaper saved on this device','Hintergrund auf diesem Gerät gespeichert','Шпалери збережено на цьому пристрої','Fond enregistré sur cet appareil'],
     'НА СВЯЗИ':['ONLINE','ONLINE','НА ЗВ’ЯЗКУ','EN LIGNE'],
     'Сообщения':['Messages','Nachrichten','Повідомлення','Messages'],
     'ЧАТЫ':['CHATS','CHATS','ЧАТИ','DISCUSSIONS'],
@@ -1065,6 +1109,7 @@ Object.assign(translations, {
         "vb-bubble" + (m.deleted_at ? " vb-deleted" : ""),
       );
       const textNode=el('span','',m.deleted_at ? tr('Сообщение удалено') : m.text);
+      bubble.tabIndex = 0;
       bubble.append(textNode);
       if(isNew && !own && !m.deleted_at && flag('text-anim',true) && flag('anim',true) && !flag('power-saving')) {
         const chars=Array.from(String(m.text||''));textNode.textContent='';let index=0;
@@ -1768,111 +1813,230 @@ Object.assign(translations, {
     };
     return b;
   }
+  let settingsSection = null;
+  let wallpaperChangeId = 0;
+  const wallpaperKey = 'vb-wallpaper-image';
+  const wallpaperModeKey = 'vb-wallpaper-mode';
+  const wallpaperDataPattern = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+
+  function currentWallpaperMode() {
+    const mode = localStorage.getItem(wallpaperModeKey);
+    if (mode === 'custom' && wallpaperDataPattern.test(localStorage.getItem(wallpaperKey) || '')) return 'custom';
+    if (mode === 'pattern' || mode === 'plain') return mode;
+    return flag('bg-static', true) ? 'pattern' : 'plain';
+  }
+  function applyWallpaper() {
+    const conversation = $('conversation');
+    const mode = currentWallpaperMode();
+    app.classList.toggle('vb-custom-wallpaper', mode === 'custom');
+    app.classList.toggle('vb-no-background', mode === 'plain');
+    if (mode === 'custom') {
+      const image = localStorage.getItem(wallpaperKey);
+      conversation.style.backgroundImage = 'url("' + image + '")';
+      conversation.style.backgroundSize = 'cover';
+      conversation.style.backgroundPosition = 'center';
+      conversation.style.backgroundRepeat = 'no-repeat';
+    } else {
+      ['background-image', 'background-size', 'background-position', 'background-repeat'].forEach(prop => conversation.style.removeProperty(prop));
+    }
+  }
+  function selectWallpaper(mode) {
+    wallpaperChangeId++;
+    localStorage.setItem(wallpaperModeKey, mode);
+    localStorage.setItem('bg-static', String(mode !== 'plain'));
+    applyPreferences();
+    applyWallpaper();
+    renderSettings($('detail-body'));
+  }
+  function uploadWallpaper(file) {
+    if (!file) return;
+    if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
+      toast(tr('Выберите PNG, JPEG или WebP до 8 МБ'));
+      return;
+    }
+    const changeId = ++wallpaperChangeId;
+    let url;
+    try { url = URL.createObjectURL(file); }
+    catch (_) { toast(tr('Не удалось открыть изображение')); return; }
+    const image = new Image();
+    image.onload = () => {
+      try {
+        if (changeId !== wallpaperChangeId) return;
+        const width = image.naturalWidth, height = image.naturalHeight;
+        if (!width || !height) throw Error('invalid image');
+        const scale = Math.min(1, 1440 / Math.max(width, height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+        const context = canvas.getContext('2d');
+        if (!context) throw Error('canvas');
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        let encoded = canvas.toDataURL('image/jpeg', .78);
+        if (encoded.length > 1500000) encoded = canvas.toDataURL('image/jpeg', .58);
+        if (encoded.length > 1500000 || !wallpaperDataPattern.test(encoded)) throw Error('too large');
+        try {
+          // Write the image first. A storage error leaves the old wallpaper selected.
+          localStorage.setItem(wallpaperKey, encoded);
+        } catch (_) {
+          toast(tr('Не удалось сохранить обои: недостаточно места'));
+          return;
+        }
+        selectWallpaper('custom');
+        toast(tr('Обои сохранены на этом устройстве'));
+      } catch (_) {
+        toast(tr('Не удалось открыть изображение'));
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    };
+    image.onerror = () => { URL.revokeObjectURL(url); if (changeId === wallpaperChangeId) toast(tr('Не удалось открыть изображение')); };
+    image.src = url;
+  }
+  function actionButton(label, fn) {
+    const button = el('button', 'vb-outline-full', tr(label));
+    button.type = 'button';
+    button.onclick = fn;
+    return button;
+  }
+  function settingsBlock(body, name) {
+    const block = el('div', 'vb-detail-section');
+    block.append(el('span', 'vb-section-label', tr(name)));
+    body.append(block);
+    return block;
+  }
+  function openSettingsSection(id) {
+    settingsSection = id;
+    $('detail-body').scrollTop = 0;
+    renderSettings($('detail-body'));
+  }
   function renderSettings(body) {
     body.replaceChildren();
-    const intro = el("div", "vb-settings-intro");
-    intro.append(
-      el("span", "", tr("✦")),
-      el("h2", "", tr("Сделай по-своему")),
-      el("p", "", tr("Настрой комфортное пространство для общения.")),
-    );
-    body.append(intro);
-    const block = el("div", "vb-detail-section");
-    block.append(
-      el("span", "vb-section-label", tr("ОФОРМЛЕНИЕ")),
-      el("div", "vb-setting-title", tr("Цвет интерфейса")),
-    );
-    const colors = el("div", "vb-color-grid");
-    COLORS.forEach((item) => {
-      const button = el(
-        "button",
-        "vb-color-button" + (accent === item.color ? " selected" : ""),
-        accent === item.color ? "✓" : "",
-      );
-      button.type = "button";
-      button.title = item.name;
-      button.style.background = item.color;
-      button.onclick = () => {
-        accent = item.color;
-        app.style.setProperty("--vb-accent", accent);
-        localStorage.setItem("vb-accent", accent);
-        renderSettings(body);
-      };
-      colors.append(button);
-    });
-    const custom = el("label", "vb-custom-color", tr("＋"));
-    const picker = el("input");
-    picker.type = "color";
-    picker.value = accent;
-    picker.oninput = () => {
-      accent = picker.value;
-      app.style.setProperty("--vb-accent", accent);
-      localStorage.setItem("vb-accent", accent);
-    };
-    custom.append(picker);
-    colors.append(custom);
-    block.append(
-      colors,
-      settingRow("Тёмный режим", "Отдых для глаз вечером", (toggle) => {
-        if (toggle) {
-          dark = !dark;
-          app.classList.toggle("vb-dark", dark);
-          localStorage.setItem("vb-dark", dark ? "1" : "0");
-        }
+    if (!settingsSection) {
+      const intro = el('div', 'vb-settings-intro');
+      intro.append(el('span', '', '✦'), el('h2', '', tr('Настройки')), el('p', '', tr('Настрой комфортное пространство для общения.')));
+      body.append(intro);
+      const list = el('div', 'vb-settings-menu');
+      const categories = [
+        ['appearance', '◈', 'Темы и обои', 'Цвета, обои и внешний вид'],
+        ['privacy', '◉', 'Конфиденциальность', 'Скрытие сообщений и имени'],
+        ['chats', '✧', 'Чаты', 'Реакции и анимации сообщений'],
+        ['folders', '▤', 'Папки чатов', 'Управление папками'],
+        ['language', '文', 'Язык', 'Язык интерфейса'],
+        ['power', '◌', 'Энергосбережение', 'Меньше анимаций и запросов'],
+        ['account', '♙', 'Аккаунт', 'Профиль и вход'],
+        ['ai', '✦', 'ИИ-помощник', 'Настройки ИИ'],
+        ['application', '◇', 'Приложение', 'Установка и Telegram-бот'],
+      ];
+      categories.forEach(([id, icon, title, subtitle]) => {
+        const button = el('button', 'vb-settings-category');
+        button.type = 'button';
+        button.dataset.settingsSection = id;
+        const description = el('span', 'vb-settings-category-text');
+        description.append(el('strong', '', tr(title)), el('small', '', tr(subtitle)));
+        button.append(el('span', 'vb-settings-category-icon', icon), description, el('span', 'vb-settings-category-chevron', '›'));
+        button.onclick = () => openSettingsSection(id);
+        list.append(button);
+      });
+      body.append(list);
+      return;
+    }
+
+    const titles = {appearance:'Темы и обои',privacy:'Конфиденциальность',chats:'Чаты',folders:'Папки чатов',language:'Язык',power:'Энергосбережение',account:'Аккаунт',ai:'ИИ-помощник',application:'Приложение'};
+    const heading = el('div', 'vb-settings-subheading');
+    const back = el('button', 'vb-settings-back', '←');
+    back.type = 'button'; back.title = tr('Назад'); back.setAttribute('aria-label', tr('Назад к настройкам'));
+    back.onclick = () => openSettingsSection(null);
+    heading.append(back, el('h2', '', tr(titles[settingsSection] || 'Настройки')));
+    body.append(heading);
+
+    if (settingsSection === 'appearance') {
+      const block = settingsBlock(body, 'Цвет интерфейса');
+      const colors = el('div', 'vb-color-grid');
+      COLORS.forEach(item => {
+        const button = el('button', 'vb-color-button' + (accent === item.color ? ' selected' : ''), accent === item.color ? '✓' : '');
+        button.type = 'button'; button.title = tr(item.name); button.setAttribute('aria-label', tr(item.name)); button.style.background = item.color;
+        button.onclick = () => { accent=item.color; app.style.setProperty('--vb-accent', accent); localStorage.setItem('vb-accent',accent); renderSettings(body); };
+        colors.append(button);
+      });
+      const custom = el('label', 'vb-custom-color', '＋');
+      const picker = el('input'); picker.type='color'; picker.value=accent; picker.setAttribute('aria-label', tr('Свой цвет'));
+      picker.oninput = () => { accent=picker.value; app.style.setProperty('--vb-accent',accent); localStorage.setItem('vb-accent',accent); };
+      custom.append(picker); colors.append(custom); block.append(colors);
+      block.append(settingRow('Тёмный режим', 'Отдых для глаз вечером', toggle => {
+        if (toggle) { dark=!dark; app.classList.toggle('vb-dark',dark); localStorage.setItem('vb-dark',dark?'1':'0'); }
         return dark;
-      }),
-    );
-    body.append(block);
-    const other = el("div", "vb-detail-section");
-    other.append(
-      el("span", "vb-section-label", tr("СООБЩЕНИЯ")),
-      settingRow("Показывать реакции", "Под сообщениями в чате", (toggle) => {
-        if (toggle) {
-          reactionsVisible = !reactionsVisible;
-          localStorage.setItem(
-            "vb-show-reactions",
-            reactionsVisible ? "1" : "0",
-          );
-          renderMessages();
-        }
-        return reactionsVisible;
-      }),
-      settingRow("Быстрая реакция", "Двойной клик — ❤️", (toggle) => {
-        if (toggle) {
-          quick = !quick;
-          localStorage.setItem("vb-quick-reactions", quick ? "1" : "0");
-        }
-        return quick;
-      }),
-    );
-    body.append(other);
-    const section=(name)=>{const block=el('div','vb-detail-section');block.append(el('span','vb-section-label',tr(name)));body.append(block);return block;};
-    const action=(label,fn)=>{const b=el('button','vb-outline-full',tr(label));b.type='button';b.onclick=fn;return b;};
-    const profileSettings=section('Профиль');profileSettings.append(action('Ник, юзернейм и аватарка',()=>setPanel('profile')));
-    const accounts=section('Аккаунты');accounts.append(el('small','',user || tr('Не задан')));accounts.append(action('Добавить аккаунт',()=>{if(!confirm(tr('Выйти из текущего аккаунта?')))return;localStorage.removeItem('user');sessionStorage.removeItem('profile-token');sessionStorage.removeItem('profile-token-owner');user='';token='';updateAccount();openLogin();}));
-    const appSettings=section('Приложение');appSettings.append(el('small','',tr('Установка зависит от браузера и настроек сайта')),action('Проверить бота Telegram',async()=>{try{const status=await api('/telegram/status');toast(status.username?'@'+status.username:tr('Сервер не поддерживает эту функцию'));}catch(_){toast(tr('Сервер не поддерживает эту функцию'));}}));
-    const languages=section('Язык');const select=el('select','vb-setting-select');select.id='settings-language';languageNames.forEach(([id,name])=>{const option=el('option','',name);option.value=id;option.selected=language===id;select.append(option);});select.onchange=()=>window.setLanguage(select.value);languages.append(select);
-    const fs=section('Папки чатов');fs.append(el('small','',tr('Папки хранятся только на этом устройстве')),action('Создать папку',createFolder),action('Управлять папкой',folderOverview));
-    const privacy=section('Конфиденциальность');privacy.append(el('small','',tr('Эти настройки действуют только на этом устройстве и не меняют видимость данных для других пользователей.')),optionRow('Скрывать сообщения (наведите для просмотра)','privacy-blur'),optionRow('Скрывать имя в профиле','privacy-name'));
-    const power=section('Энергосбережение');const ps=optionRow('Режим энергосбережения','power-saving');ps.addEventListener('click',schedulePolling);power.append(ps);
-    const animation=section('Анимация сообщений');animation.append(optionRow('Текст по буквам','text-anim',true));const style=el('select','vb-setting-select');[['normal','Скейл (Обычный)'],['smooth','Плавный переход (Снизу)'],['bounce','Скок (Пружина)'],['fade','Плавное проявление']].forEach(([v,label])=>{const o=el('option','',tr(label));o.value=v;o.selected=(localStorage.getItem('msg-anim')||'normal')===v;style.append(o);});style.onchange=()=>localStorage.setItem('msg-anim',style.value);animation.append(style);
-    const background=section('Фон чата');background.append(optionRow('Живой фон (Анимация)','bg-anim',true),optionRow('Показывать фон в чате','bg-static',true));
-    const interf=section('Интерфейс');interf.append(optionRow('Анимации интерфейса','anim',true),optionRow('Квадратные поля ввода','square-input'),optionRow('Фон поля как у Surface','input-bg'));
-    const ai=section('ИИ-помощник');ai.append(action('Настройки ИИ',openAISettings));
-    const preview = el("div", "vb-theme-preview");
-    preview.append(
-      el("span", "vb-section-label", tr("ПРЕДПРОСМОТР ТЕМЫ")),
-      el("div", "vb-preview-bubble", tr("Привет! Как тебе новый цвет? ✨")),
-      el("div", "vb-preview-bubble mine", tr("Выглядит отлично!")),
-    );
-    body.append(preview);
-    const link = el("a", "vb-version-link", tr("Открыть исходный интерфейс →"));
-    link.href = "./manager.html";
-    body.append(link);
+      }));
+
+      const wallpapers = settingsBlock(body, 'Обои чата');
+      const mode = currentWallpaperMode();
+      const preview = el('div', 'vb-wallpaper-preview');
+      preview.dataset.wallpaperPreview = mode;
+      if (mode === 'custom') preview.style.backgroundImage = 'url("' + localStorage.getItem(wallpaperKey) + '")';
+      preview.append(el('span', 'vb-wallpaper-bubble', tr('Привет! Как тебе новые обои?')), el('span', 'vb-wallpaper-bubble mine', tr('Выглядит отлично!')));
+      wallpapers.append(preview);
+      const choices = el('div', 'vb-wallpaper-choices');
+      [['pattern','Узор'],['plain','Без обоев']].forEach(([id,label]) => {
+        const button = el('button', 'vb-wallpaper-choice' + (mode===id?' selected':''), tr(label));
+        button.type = 'button'; button.dataset.wallpaperMode=id; button.setAttribute('aria-pressed', String(mode===id));
+        button.onclick = () => selectWallpaper(id); choices.append(button);
+      });
+      if (wallpaperDataPattern.test(localStorage.getItem(wallpaperKey) || '')) {
+        const button = el('button', 'vb-wallpaper-choice' + (mode==='custom'?' selected':''), tr('Свои обои'));
+        button.type='button'; button.dataset.wallpaperMode='custom'; button.setAttribute('aria-pressed',String(mode==='custom'));
+        button.onclick = () => selectWallpaper('custom'); choices.append(button);
+      }
+      wallpapers.append(choices);
+      const upload = el('label', 'vb-wallpaper-upload', tr('Выбрать изображение'));
+      const file = el('input'); file.type='file'; file.accept='image/png,image/jpeg,image/webp'; file.dataset.wallpaperInput='true';
+      file.onchange = () => { const selected=file.files?.[0]; file.value=''; uploadWallpaper(selected); };
+      upload.append(file); wallpapers.append(upload);
+      if (wallpaperDataPattern.test(localStorage.getItem(wallpaperKey) || '')) {
+        const remove = actionButton('Удалить свои обои', () => { wallpaperChangeId++; localStorage.removeItem(wallpaperKey); if (currentWallpaperMode() === 'custom' || localStorage.getItem(wallpaperModeKey) === 'custom') selectWallpaper('pattern'); else renderSettings(body); });
+        remove.dataset.wallpaperRemove='true'; wallpapers.append(remove);
+      }
+      wallpapers.append(el('small', 'vb-settings-note', tr('Обои видны только на этом устройстве.')));
+      wallpapers.append(optionRow('Живой фон (Анимация)', 'bg-anim', true));
+      const iface = settingsBlock(body, 'Интерфейс');
+      iface.append(optionRow('Анимации интерфейса','anim',true), optionRow('Квадратные поля ввода','square-input'), optionRow('Фон поля как у Surface','input-bg'));
+      return;
+    }
+    if (settingsSection === 'privacy') {
+      const block = settingsBlock(body, 'Конфиденциальность');
+      block.append(el('small','vb-settings-note',tr('Эти настройки действуют только на этом устройстве и не меняют видимость данных для других пользователей.')), optionRow('Скрывать сообщения (наведите для просмотра)','privacy-blur'), optionRow('Скрывать имя в профиле','privacy-name'));
+      return;
+    }
+    if (settingsSection === 'chats') {
+      const block = settingsBlock(body,'Реакции');
+      block.append(settingRow('Показывать реакции','Под сообщениями в чате',toggle=>{if(toggle){reactionsVisible=!reactionsVisible;localStorage.setItem('vb-show-reactions',reactionsVisible?'1':'0');renderMessages();}return reactionsVisible;}),settingRow('Быстрая реакция','Двойной клик — ❤️',toggle=>{if(toggle){quick=!quick;localStorage.setItem('vb-quick-reactions',quick?'1':'0');}return quick;}));
+      const animation = settingsBlock(body,'Анимация сообщений'); animation.append(optionRow('Текст по буквам','text-anim',true));
+      const style=el('select','vb-setting-select'); style.setAttribute('aria-label',tr('Вид анимации'));
+      [['normal','Скейл (Обычный)'],['smooth','Плавный переход (Снизу)'],['bounce','Скок (Пружина)'],['fade','Плавное проявление']].forEach(([value,label])=>{const option=el('option','',tr(label));option.value=value;option.selected=(localStorage.getItem('msg-anim')||'normal')===value;style.append(option);});
+      style.onchange=()=>localStorage.setItem('msg-anim',style.value);animation.append(style);
+      return;
+    }
+    if (settingsSection === 'folders') {
+      const block=settingsBlock(body,'Папки чатов');block.append(el('small','vb-settings-note',tr('Папки хранятся только на этом устройстве')),actionButton('Создать папку',createFolder),actionButton('Управлять папкой',folderOverview));return;
+    }
+    if (settingsSection === 'language') {
+      const block=settingsBlock(body,'Язык интерфейса');const select=el('select','vb-setting-select');select.id='settings-language';select.setAttribute('aria-label',tr('Язык интерфейса'));
+      languageNames.forEach(([id,name])=>{const option=el('option','',name);option.value=id;option.selected=language===id;select.append(option);});select.onchange=()=>window.setLanguage(select.value);block.append(select);return;
+    }
+    if (settingsSection === 'power') {
+      const block=settingsBlock(body,'Энергосбережение');const power=optionRow('Режим энергосбережения','power-saving');power.addEventListener('click',schedulePolling);block.append(power);return;
+    }
+    if (settingsSection === 'account') {
+      const block=settingsBlock(body,'Профиль');block.append(actionButton('Ник, юзернейм и аватарка',()=>setPanel('profile')));
+      const accounts=settingsBlock(body,'Аккаунты');accounts.append(el('small','vb-settings-note',user||tr('Не задан')),actionButton('Добавить аккаунт',()=>{if(!confirm(tr('Выйти из текущего аккаунта?')))return;localStorage.removeItem('user');sessionStorage.removeItem('profile-token');sessionStorage.removeItem('profile-token-owner');user='';token='';updateAccount();openLogin();}));return;
+    }
+    if (settingsSection === 'ai') { const block=settingsBlock(body,'ИИ-помощник');block.append(actionButton('Настройки ИИ',openAISettings));return; }
+    if (settingsSection === 'application') {
+      const block=settingsBlock(body,'Приложение');block.append(el('small','vb-settings-note',tr('Установка зависит от браузера и настроек сайта')),actionButton('Проверить бота Telegram',async()=>{try{const status=await api('/telegram/status');toast(status.username?'@'+status.username:tr('Сервер не поддерживает эту функцию'));}catch(_){toast(tr('Сервер не поддерживает эту функцию'));}}));
+    }
   }
   let previousPane = 'chats';
   function setPanel(value, p) {
     if(!app.classList.contains('vb-mobile-details')) previousPane = app.classList.contains('vb-mobile-chats') ? 'chats' : 'chat';
+    if (value === 'settings' && panel !== 'settings') settingsSection = null;
     panel = value;
     person = p || null;
     renderPanel();
@@ -1968,7 +2132,7 @@ Object.assign(translations, {
     schedulePolling();
   }
   languageNames.forEach(([value,label])=>{const opt=document.createElement('option');opt.value=value;opt.textContent=label;$('auth-language').append(opt);});
-  markStaticTranslations(); applyPreferences(); renderFolders(); $('auth-language').value=language; document.documentElement.lang=language;
+  markStaticTranslations(); applyPreferences(); applyWallpaper(); renderFolders(); $('auth-language').value=language; document.documentElement.lang=language;
   $("global-chat").onclick = () => openChat("global", "Global Chat");
   $('ai-chat').onclick = () => { if(!user){openLogin();return;} openChat('ai',tr('ИИ-помощник')); };
   $("saved-chat").onclick = () => {
@@ -1979,7 +2143,11 @@ Object.assign(translations, {
     openChat("saved_" + user, "Избранное");
   };
   $("back-chats").onclick = () => layout("chats");
-  $("detail-close").onclick = () => layout(previousPane);
+  $("detail-close").onclick = () => {
+    if (panel === 'settings' && settingsSection) { openSettingsSection(null); return; }
+    if (panel === 'settings') settingsSection = null;
+    layout(previousPane);
+  };
   $("chat-info-button").onclick = () => setPanel("info");
   $("chat-settings-button").onclick = () => chatId === 'ai' ? openAISettings() : setPanel("settings");
   $("account-button").onclick = () => setPanel("profile");
