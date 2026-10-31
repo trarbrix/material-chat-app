@@ -47,10 +47,25 @@ jobs:
           done
           count=$(find . -maxdepth 1 -type f -name '*.dmg' | wc -l)
           if [[ "$count" -ne 2 ]]; then echo "::error::Expected two Mac images, found $count"; exit 1; fi
-          find . -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > ../Material-Chat-SHA256SUMS.txt
-          mv ../Material-Chat-SHA256SUMS.txt .
           # Never clobber or delete an existing asset. If any upload fails, stop.
           gh release view 1.0-beta --repo "$GITHUB_REPOSITORY" >/dev/null
           while IFS= read -r -d '' asset; do
             gh release upload 1.0-beta "$asset" --repo "$GITHUB_REPOSITORY"
           done < <(find . -maxdepth 1 -type f -print0 | sort -z)
+
+  fix-checksums:
+    if: startsWith(github.event.head_commit.message, 'Correct release checksums')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Replace only our newly created checksum file with actual release names
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          endpoint="repos/$GITHUB_REPOSITORY/releases/tags/1.0-beta"
+          asset_id=$(gh api "$endpoint" --jq '.assets[] | select(.name == "Material-Chat-SHA256SUMS.txt") | .id')
+          if [[ "$asset_id" != "695937809" ]]; then echo "::error::Checksum asset changed; refusing to replace it"; exit 1; fi
+          gh api "$endpoint" --jq '.assets[] | select(.name != "Material-Chat-SHA256SUMS.txt") | select(.digest != null) | [.digest | ltrimstr("sha256:"), .name] | join("  ")' > Material-Chat-SHA256SUMS.txt
+          if [[ $(wc -l < Material-Chat-SHA256SUMS.txt) -ne 8 ]]; then echo "::error::Unexpected asset count"; exit 1; fi
+          gh release upload 1.0-beta Material-Chat-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
