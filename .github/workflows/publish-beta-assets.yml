@@ -8,7 +8,7 @@ permissions:
   actions: read
 jobs:
   publish:
-    if: github.event.head_commit.message == 'Publish beta assets to release'
+    if: startsWith(github.event.head_commit.message, 'Publish beta assets to release')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
