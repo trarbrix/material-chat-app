@@ -4,6 +4,7 @@
   "version": "1.0.0-beta.1",
   "description": "Material Chat desktop beta",
   "author": "Material Chat",
+  "homepage": "https://github.com/trarbrix/material-chat-app",
   "license": "UNLICENSED",
   "private": true,
   "main": "main.js",
