@@ -1,0 +1,53 @@
+name: Add beta assets to existing release
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Windows installer from verified build
+        uses: actions/download-artifact@v4
+        with:
+          name: Material-Chat-win
+          path: release-files
+          run-id: 41221205781
+          github-token: ${{ github.token }}
+      - name: Download macOS disk images from verified build
+        uses: actions/download-artifact@v4
+        with:
+          name: Material-Chat-mac
+          path: release-files
+          run-id: 41221205781
+          github-token: ${{ github.token }}
+      - name: Download Debian and Fedora packages from verified build
+        uses: actions/download-artifact@v4
+        with:
+          name: Material-Chat-linux
+          path: release-files
+          run-id: 41221205781
+          github-token: ${{ github.token }}
+      - name: Check assets and add to existing beta release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp downloads/Material-Chat-beta.apk downloads/Material-Chat-x86_64.AppImage release-files/
+          cd release-files
+          for ext in exe deb rpm apk AppImage; do
+            count=$(find . -maxdepth 1 -type f -name "*.$ext" | wc -l)
+            if [[ "$count" -ne 1 ]]; then echo "::error::Expected one .$ext file, found $count"; exit 1; fi
+          done
+          count=$(find . -maxdepth 1 -type f -name '*.dmg' | wc -l)
+          if [[ "$count" -ne 2 ]]; then echo "::error::Expected two Mac images, found $count"; exit 1; fi
+          find . -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > ../Material-Chat-SHA256SUMS.txt
+          mv ../Material-Chat-SHA256SUMS.txt .
+          # Never clobber or delete an existing asset. If any upload fails, stop.
+          gh release view 1.0-beta --repo "$GITHUB_REPOSITORY" >/dev/null
+          while IFS= read -r -d '' asset; do
+            gh release upload 1.0-beta "$asset" --repo "$GITHUB_REPOSITORY"
+          done < <(find . -maxdepth 1 -type f -print0 | sort -z)
