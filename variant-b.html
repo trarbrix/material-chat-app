@@ -145,9 +145,6 @@
 .vb-own .vb-bubble { background: var(--vb-accent); color: #fff; border-color: var(--vb-accent); border-radius: 13px 13px 3px 13px; box-shadow: 0 7px 17px color-mix(in srgb, var(--vb-accent) 17%, transparent); }
 .vb-bubble.vb-deleted { opacity: .6; font-style: italic; }
 .vb-bubble img { display: block; max-width: 270px; width: 100%; border-radius: 8px; margin-top: 9px; }
-.vb-bubble-more { opacity: 0; pointer-events: none; display: grid; place-items: center; position: absolute; top: -8px; right: -33px; height: 28px; width: 28px; border: 1px solid var(--vb-border); border-radius: 8px; background: var(--vb-card); color: var(--vb-soft); box-shadow: var(--vb-shadow); transition: opacity .15s; }
-.vb-own .vb-bubble-more { right: auto; left: -33px; }
-.vb-bubble:hover .vb-bubble-more, .vb-bubble-more:focus-visible { opacity: 1; pointer-events: auto; }
 .vb-edited, .vb-forwarded { display: flex; align-items: center; gap: 4px; font-size: 9px; opacity: .69; margin-top: 6px; }
 .vb-reaction-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
 .vb-reaction-chip, .vb-reaction-add { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 2px 8px; border: 1px solid var(--vb-border); border-radius: 7px; background: var(--vb-card); color: var(--vb-soft); font-size: 11px; }
@@ -278,7 +275,6 @@
 @media (max-width: 1180px) { .vb-app .vb-shell { grid-template-columns: 255px minmax(350px,1fr) 272px; } .vb-brand-row { padding: 0 17px; } .vb-detail-head { padding: 0 17px; } .vb-detail-body { padding: 0 17px 24px; } .vb-secure-note { display: none; } }
 @media (max-width: 900px) { .vb-app .vb-shell { grid-template-columns: 255px minmax(330px,1fr); } .vb-detail { display: none; position: fixed; z-index: 35; top: 0; right: 0; width: 310px; height: 100vh; box-shadow: -15px 0 55px rgba(18,18,40,.13); } .vb-app.vb-mobile-details .vb-detail { display: flex; } .vb-app.vb-mobile-details .vb-detail-close { display: grid; } }
 @media (max-width: 620px) { .vb-app .vb-shell { display: block; height: 100vh; width: 100%; min-height: 100vh; } .vb-sidebar, .vb-main { height: 100vh; width: 100%; } .vb-sidebar { display: none; } .vb-main { display: none; } .vb-app.vb-mobile-chats .vb-sidebar { display: flex; } .vb-app.vb-mobile-chat .vb-main, .vb-app.vb-mobile-details .vb-main { display: flex; } .vb-app.vb-mobile-details .vb-detail { width: 100%; box-shadow: none; } .vb-back-mobile { display: grid; place-items: center; } .vb-chat-header { height: 69px; padding: 0 14px; gap: 9px; } .vb-header-avatar { width: 39px; height: 39px; border-radius: 12px; } .vb-conversation-inner { padding: 22px 17px 12px; } .vb-composer-area { padding: 10px 13px 15px; } .vb-composer-caption { font-size: 8px; } .vb-composer-caption span:last-child { display: none; } .vb-detail-head { height: 69px; } .vb-sidebar-scroll { padding-top: 29px; } .vb-menu { left: 12px !important; top: auto !important; bottom: 18px; width: calc(100vw - 24px); } }
-@media (hover: none) { .vb-bubble-more { opacity: 1; pointer-events: auto; } }
 
     body { margin:0; }
     .vb-app [hidden] { display:none !important; }
@@ -309,7 +305,6 @@
     .vb-profile-actions .vb-shape-grid button { padding:5px 2px; font-size:9px; }
     .vb-message-row { scroll-margin:80px; }
     .vb-message-row.vb-highlight .vb-bubble { outline:2px solid var(--vb-accent); outline-offset:3px; }
-    .vb-bubble .vb-bubble-more { position:static; display:inline-grid; opacity:1; pointer-events:auto; vertical-align:middle; margin-left:8px; width:23px; height:20px; background:transparent; border:0; color:inherit; box-shadow:none; }
     @media(max-width:620px) { .vb-app .vb-shell{height:100dvh;} .vb-sidebar,.vb-main{height:100dvh;} .vb-detail{height:100dvh;} }
           /* ЭКРАН ВХОДА */
         #auth-screen { align-items: center; justify-content: center; padding: 20px; }
@@ -1243,21 +1238,30 @@ Object.assign(translations, {
       if (m.media_url && !m.deleted_at) {
         try { const url=mediaUrl(m.media_url);const type=m.type||m.msg_type||'image';const media=el(type==='audio'?'audio':(['video','circle'].includes(type)?'video':'img'));media.src=url;if(type==='image'){media.alt=tr('Фото');media.classList.add('vb-message-photo');media.tabIndex=0;media.setAttribute('role','button');media.setAttribute('aria-label',tr('Открыть фото'));media.onclick=e=>{e.stopPropagation();openPhotoViewer(url);};media.ondblclick=e=>e.stopPropagation();media.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();openPhotoViewer(url);}};}else {media.controls=true;media.playsInline=true;if(type==='circle')media.classList.add('vb-circle-video');}bubble.append(media); } catch (_) {}
       }
-      const more = el("button", "vb-bubble-more", tr("···"));
-      more.type = "button";
-      more.title = "Действия";
-      more.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        showMenu(m, ev.clientX, ev.clientY);
-      });
       bubble.addEventListener("contextmenu", (ev) => {
         ev.preventDefault();
         showMenu(m, ev.clientX, ev.clientY);
       });
+      bubble.addEventListener("keydown", ev => {
+        if(ev.target===bubble && (ev.key==='ContextMenu' || (ev.key==='F10' && ev.shiftKey))){
+          ev.preventDefault();const rect=bubble.getBoundingClientRect();showMenu(m,rect.left,rect.bottom);
+        }
+      });
+      // On touchscreens, a stationary hold opens the same actions as right-click.
+      let pressTimer=null, pressStart=null;
+      function cancelPress(){if(pressTimer)clearTimeout(pressTimer);pressTimer=null;pressStart=null;}
+      bubble.addEventListener('pointerdown',ev=>{
+        if(ev.pointerType!=='touch' && ev.pointerType!=='pen')return;
+        if(ev.target.closest('button,audio,video,img,a'))return;
+        cancelPress();pressStart={id:ev.pointerId,x:ev.clientX,y:ev.clientY};
+        pressTimer=setTimeout(()=>{if(pressStart){const pointer=pressStart.id;showMenu(m,pressStart.x,pressStart.y);menuIgnorePointer=pointer;pressStart=null;}pressTimer=null;},550);
+      });
+      bubble.addEventListener('pointermove',ev=>{if(pressStart&&ev.pointerId===pressStart.id&&Math.hypot(ev.clientX-pressStart.x,ev.clientY-pressStart.y)>10)cancelPress();});
+      bubble.addEventListener('pointerup',cancelPress);
+      bubble.addEventListener('pointercancel',cancelPress);
       bubble.addEventListener("dblclick", () => {
         if (quick && !m.deleted_at) react(m, "❤️");
       });
-      bubble.append(more);
       stack.append(bubble);
       if (reactionsVisible && !m.deleted_at) {
         const reactRow = el("div", "vb-reaction-row");
@@ -1418,7 +1422,10 @@ Object.assign(translations, {
     }
     t.remove();
   }
+  let menuIgnorePointer = null;
+  window.addEventListener("click", ev => {if(ev.isTrusted && menuIgnorePointer!==null && ev.pointerId===menuIgnorePointer){ev.preventDefault();ev.stopImmediatePropagation();menuIgnorePointer=null;}}, true);
   function closeMenu() {
+    menuIgnorePointer = null;
     $("popup-root").replaceChildren();
     menuMessage = null;
   }

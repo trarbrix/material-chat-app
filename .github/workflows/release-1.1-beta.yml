@@ -1,0 +1,152 @@
+name: Build and publish Material Chat 1.1 Beta
+on:
+  push:
+    branches: ['arena/c334ccb2-material-chat-app']
+    paths: ['.github/workflows/release-1.1-beta.yml']
+permissions:
+  contents: read
+jobs:
+  desktop:
+    if: startsWith(github.event.head_commit.message, 'Release Material Chat 1.1 Beta')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+          - os: macos-15
+            target: mac
+          - os: ubuntu-24.04
+            target: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Install and test
+        working-directory: desktop
+        run: npm ci && npm test
+      - name: Build installers
+        working-directory: desktop
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          if npm run dist:${{ matrix.target }} > build.log 2>&1; then
+            cat build.log
+          else
+            cat build.log
+            detail=$(tail -n 20 build.log | tr -d '\r' | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error::Desktop build failed: $detail"
+            exit 1
+          fi
+      - name: Prepare named assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-files
+          case '${{ matrix.target }}' in
+            win)
+              files=(desktop/dist/*.exe); [[ ${#files[@]} == 1 && -f ${files[0]} ]]
+              cp "${files[0]}" release-files/Material-Chat-Windows-x64-Setup.exe ;;
+            mac)
+              files=(desktop/dist/*arm64.dmg); [[ ${#files[@]} == 1 && -f ${files[0]} ]]
+              cp "${files[0]}" release-files/Material-Chat-macOS-Apple-Silicon.dmg
+              files=(desktop/dist/*.dmg); intel=()
+              for f in "${files[@]}"; do [[ "$f" == *arm64.dmg ]] || intel+=("$f"); done
+              [[ ${#intel[@]} == 1 && -f ${intel[0]} ]]
+              cp "${intel[0]}" release-files/Material-Chat-macOS-Intel.dmg ;;
+            linux)
+              files=(desktop/dist/*.deb); [[ ${#files[@]} == 1 && -f ${files[0]} ]]
+              cp "${files[0]}" release-files/Material-Chat-Debian-amd64.deb
+              files=(desktop/dist/*.rpm); [[ ${#files[@]} == 1 && -f ${files[0]} ]]
+              cp "${files[0]}" release-files/Material-Chat-Fedora-x86_64.rpm ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: release-files/*
+          if-no-files-found: error
+          retention-days: 30
+  android:
+    if: startsWith(github.event.head_commit.message, 'Release Material Chat 1.1 Beta')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build debug-signed Android beta
+        working-directory: android-app
+        run: gradle --no-daemon assembleDebug
+      - name: Verify HTML in APK
+        run: |
+          set -euo pipefail
+          unzip -p android-app/app/build/outputs/apk/debug/app-debug.apk assets/variant-b.html > /tmp/packaged-html
+          cmp variant-b.html /tmp/packaged-html
+          mkdir release-files
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk release-files/Material-Chat-Android-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: release-files/*
+          if-no-files-found: error
+          retention-days: 30
+  appimage:
+    if: startsWith(github.event.head_commit.message, 'Release Material Chat 1.1 Beta')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build AppImage with verified Type-2 runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y squashfs-tools
+          gh api repos/denoland/deno/git/blobs/c445fbd17cfc5249bf1e3c7cf2b4ff6afc1a39cf --jq .content | base64 -d > /tmp/appimage-runtime
+          echo '2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d  /tmp/appimage-runtime' | sha256sum -c -
+          mkdir release-files
+          RUNTIME_X86_64=/tmp/appimage-runtime ./linux-app/build.sh release-files/Material-Chat-Linux-x86_64.AppImage
+          offset=$(stat -c '%s' /tmp/appimage-runtime)
+          unsquashfs -offset "$offset" -cat release-files/Material-Chat-Linux-x86_64.AppImage variant-b.html > /tmp/packaged-html
+          cmp variant-b.html /tmp/packaged-html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-appimage
+          path: release-files/*
+          if-no-files-found: error
+          retention-days: 30
+  publish:
+    needs: [desktop, android, appimage]
+    if: startsWith(github.event.head_commit.message, 'Release Material Chat 1.1 Beta')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-files
+          merge-multiple: true
+      - name: Check assets, generate checksums and create new prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp variant-b.html release-files/Material-Chat.html
+          cd release-files
+          for f in Material-Chat-Android-debug.apk Material-Chat-Windows-x64-Setup.exe Material-Chat-macOS-Apple-Silicon.dmg Material-Chat-macOS-Intel.dmg Material-Chat-Debian-amd64.deb Material-Chat-Fedora-x86_64.rpm Material-Chat-Linux-x86_64.AppImage Material-Chat.html; do
+            [[ -s "$f" ]] || { echo "::error::Missing $f"; exit 1; }
+          done
+          [[ $(find . -maxdepth 1 -type f | wc -l) == 8 ]]
+          sha256sum Material-Chat* > SHA256SUMS.txt
+          gh release create 1.1-beta ./* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title 'Material Chat 1.1 Beta' --notes-file ../.github/release-notes-1.1-beta.md

@@ -416,3 +416,12 @@ test('lost release during an unexpectedly slow permission request cannot start h
   buttonByText(w,'Отмена',w.document.querySelector('.vb-hold-status')).click();assert.equal(stopped,1);
  }finally{w.close();}
 });
+test('message bubbles have no three dots and keep actions via right click, keyboard and touch hold',async()=>{
+ const dom=await app({user:'alice',fetch:async(url)=>url.endsWith('/messages/global')?response([{id:1,sender:'alice',text:'hello'}]):response([])});const w=dom.window;try{
+  await new Promise(r=>setTimeout(r,15));let bubble=w.document.querySelector('.vb-bubble');assert.ok(bubble);assert.equal(bubble.querySelector('.vb-bubble-more'),null);assert.equal(bubble.textContent.includes('···'),false);
+  bubble.dispatchEvent(new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:100,clientY:100}));assert.ok(w.document.querySelector('.vb-menu-item'));w.document.querySelector('.vb-menu-overlay').click();
+  bubble.dispatchEvent(new w.KeyboardEvent('keydown',{bubbles:true,cancelable:true,key:'F10',shiftKey:true}));assert.ok(w.document.querySelector('.vb-menu-item'));w.document.querySelector('.vb-menu-overlay').click();
+  const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerType:'touch',pointerId:1,clientX:120,clientY:100});bubble.dispatchEvent(down);await new Promise(r=>setTimeout(r,590));assert.ok(w.document.querySelector('.vb-menu-item'));w.document.querySelector('.vb-menu-overlay').click();
+  const down2=new w.Event('pointerdown',{bubbles:true});Object.assign(down2,{pointerType:'touch',pointerId:2,clientX:120,clientY:100});bubble.dispatchEvent(down2);const move=new w.Event('pointermove',{bubbles:true});Object.assign(move,{pointerType:'touch',pointerId:2,clientX:120,clientY:120});bubble.dispatchEvent(move);await new Promise(r=>setTimeout(r,590));assert.equal(w.document.querySelector('.vb-menu-item'),null);
+ }finally{w.close();}
+});
