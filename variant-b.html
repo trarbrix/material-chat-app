@@ -2460,6 +2460,14 @@ Object.assign(translations, {
       actions.append(send,cancel);modal.append(status,preview,actions);
     });
   }
+  async function mayPromptForRecording(kind){
+    try{
+      if(!navigator.permissions?.query)return true;
+      const names=kind==='circle'?['microphone','camera']:['microphone'];
+      const states=await Promise.all(names.map(name=>navigator.permissions.query({name})));
+      return states.some(state=>state.state!=='granted');
+    }catch(_){return true;}
+  }
   function startHeldRecording(kind){
     if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){toast(tr('Запись недоступна на этом устройстве'));return null;}
     const targetChat=chatId,sender=user;
@@ -2482,7 +2490,13 @@ Object.assign(translations, {
           stream=readyCapture.stream;readyCapture=null;if(readyTimer)clearTimeout(readyTimer);readyTimer=null;
         }else{
           clearReadyCapture();showHoldStatus('Ожидаем разрешения на микрофон или камеру…',null,kind);
-          stream=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='circle'?{facingMode:'user',width:{ideal:480},height:{ideal:480}}:false});
+          // Chrome's permission bubble can consume the release without blurring the page.
+          // Never assume a pointer is still held across an expected permission prompt.
+          if(await mayPromptForRecording(kind))interruptHoldForPermission(capture);
+          if(capture.cancelled||heldCapture!==capture||user!==sender||chatId!==targetChat)return;
+          const watchdog=setTimeout(()=>interruptHoldForPermission(capture),700);
+          try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='circle'?{facingMode:'user',width:{ideal:480},height:{ideal:480}}:false});}
+          finally{clearTimeout(watchdog);}
         }
         if(capture.cancelled||heldCapture!==capture||document.hidden||user!==sender||chatId!==targetChat){stopCaptureStream(stream);if(heldCapture===capture){heldCapture=null;hideHoldStatus();}return;}
         if(!capture.held){
@@ -2566,7 +2580,7 @@ Object.assign(translations, {
       actions.append(choose,send,cancel);modal.append(note,input,grid,info,actions);paint();
     });
   }
-  let recordMode='audio', activePointer=null, holdTimer=null, holding=false, releaseRecording=null, suppressClickUntil=0;
+  let recordMode='audio', activePointer=null, holdTimer=null, holding=false, releaseRecording=null, suppressClickUntil=0, interruptedPointer=null;
   const recordButton=$('record-button');
   function updateRecordButton(){
     const key=recordMode==='audio'
@@ -2583,7 +2597,7 @@ Object.assign(translations, {
   recordButton.addEventListener('contextmenu',e=>e.preventDefault());
   recordButton.addEventListener('pointerdown',e=>{
     if(activePointer!==null || (e.pointerType==='mouse' && e.button!==0))return;
-    activePointer=e.pointerId;holding=false;releaseRecording=null;
+    interruptedPointer=null;activePointer=e.pointerId;holding=false;releaseRecording=null;
     try{recordButton.setPointerCapture(e.pointerId);}catch(_){}
     holdTimer=setTimeout(()=>{
       holdTimer=null;holding=true;suppressClickUntil=Date.now()+1000;
@@ -2597,8 +2611,13 @@ Object.assign(translations, {
     if(holding){suppressClickUntil=Date.now()+500;if(releaseRecording)releaseRecording(cancelled);}
     holding=false;releaseRecording=null;
   }
-  window.addEventListener('pointerup',e=>finishPointer(e,false));
-  window.addEventListener('pointercancel',e=>finishPointer(e,true));
+  function interruptHoldForPermission(capture){
+    if(heldCapture!==capture||!capture.held)return;
+    capture.held=false;
+    if(activePointer!==null){const id=activePointer;interruptedPointer=id;finishPointer({pointerId:id},false);try{if(recordButton.hasPointerCapture(id))recordButton.releasePointerCapture(id);}catch(_){}}
+  }
+  window.addEventListener('pointerup',e=>{if(e.pointerId===interruptedPointer){interruptedPointer=null;suppressClickUntil=Date.now()+500;}finishPointer(e,false);});
+  window.addEventListener('pointercancel',e=>{if(e.pointerId===interruptedPointer)interruptedPointer=null;finishPointer(e,true);});
   window.addEventListener('blur',()=>{if(activePointer!==null)finishPointer({pointerId:activePointer},true);});
   // A touch release can synthesize a click on the newly opened modal's scrim.
   window.addEventListener('click',e=>{if(e.isTrusted&&e.detail!==0&&Date.now()<suppressClickUntil){e.preventDefault();e.stopImmediatePropagation();suppressClickUntil=0;}},true);

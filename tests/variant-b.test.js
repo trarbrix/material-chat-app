@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(__dirname,'..','variant-b.html'),'utf8');
 async function app({user='', fetch:mock, session={}, initial={}, setup, url='http://localhost/variant-b.html'}={}) {
   const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e));
   const dom=new JSDOM(html,{url,runScripts:'dangerously',virtualConsole:vc,beforeParse(w){
-    Object.defineProperty(w.document,'hidden',{value:false,configurable:true});w.localStorage.setItem('anim','false');if(user)w.localStorage.setItem('user',user);
+    Object.defineProperty(w.document,'hidden',{value:false,configurable:true});Object.defineProperty(w.navigator,'permissions',{configurable:true,value:{query:async()=>({state:'granted'})}});w.localStorage.setItem('anim','false');if(user)w.localStorage.setItem('user',user);
     Object.entries(session).forEach(([k,v])=>w.sessionStorage.setItem(k,v));
     Object.entries(initial).forEach(([k,v])=>w.localStorage.setItem(k,v));if(setup)setup(w);
     w.fetch=mock|| (async()=>({ok:true,status:200,json:async()=>[]}));
@@ -390,5 +390,29 @@ test('ready capture is released when page is hidden',async()=>{
   const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:16,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
   const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:16,pointerType:'touch'});w.dispatchEvent(up);finish({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));
   Object.defineProperty(w.document,'hidden',{value:true,configurable:true});w.document.dispatchEvent(new w.Event('visibilitychange'));assert.equal(stopped,1);assert.equal(w.document.querySelector('.vb-hold-status').hidden,true);
+ }finally{w.close();}
+});
+test('Chrome permission prompt can swallow pointer release without a blur and next hold reuses the approved stream',async()=>{
+ let resolvePermission,calls=0,starts=0,stops=0;const dom=await app({user:'alice',setup(w){
+  Object.defineProperty(w.navigator,'permissions',{configurable:true,value:{query:async()=>({state:'prompt'})}});
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>{calls++;return new Promise(r=>{resolvePermission=r})}}});
+  w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};
+  w.MediaRecorder=class{static isTypeSupported(){return true}constructor(s,o){this.mimeType=o.mimeType;this.state='inactive'}start(){starts++;this.state='recording'}stop(){this.state='inactive';this.ondataavailable({data:new w.Blob(['audio'],{type:this.mimeType})});this.onstop()}};
+ }});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:1,pointerType:'mouse',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  assert.equal(calls,1);resolvePermission({getTracks:()=>[{stop:()=>stops++}]});await new Promise(r=>setTimeout(r,5));
+  assert.equal(starts,0);assert.match(w.document.querySelector('.vb-hold-status').textContent,/Доступ получен/);
+  const second=new w.Event('pointerdown',{bubbles:true});Object.assign(second,{pointerId:1,pointerType:'mouse',button:0});button.dispatchEvent(second);await new Promise(r=>setTimeout(r,380));
+  assert.equal(starts,1);assert.equal(calls,1);assert.equal(w.document.querySelector('.vb-modal'),null);
+  const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:1,pointerType:'mouse'});w.dispatchEvent(up);assert.equal(stops,1);assert.ok(buttonByText(w,'Отправить запись'));
+ }finally{w.close();}
+});
+test('lost release during an unexpectedly slow permission request cannot start hidden recording',async()=>{
+ let finish,stopped=0,started=0;const dom=await app({user:'alice',setup(w){
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>{finish=r})}});w.MediaRecorder=class{start(){started++}};
+ }});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:2,pointerType:'mouse',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,1100));
+  finish({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));assert.equal(started,0);assert.match(w.document.querySelector('.vb-hold-status').textContent,/Доступ получен/);
+  buttonByText(w,'Отмена',w.document.querySelector('.vb-hold-status')).click();assert.equal(stopped,1);
  }finally{w.close();}
 });
