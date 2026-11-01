@@ -345,3 +345,25 @@ test('holding voice mode records and releasing does not switch the selected mode
   assert.equal(constraints.video,false);assert.equal(stopped,1);assert.equal(button.dataset.mode,'audio');assert.ok(buttonByText(w,'Отправить запись'));assert.equal(buttonByText(w,'Отправить запись').hidden,false);
  }finally{w.close();}
 });
+test('permission prompt blur keeps recording dialog open and lets user start after granting',async()=>{
+ let resolvePermission,calls=0,stopped=0,started=0;const dom=await app({user:'alice',setup(w){
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>{calls++;return calls===1?new Promise(r=>{resolvePermission=r}):Promise.resolve({getTracks:()=>[{stop:()=>stopped++}]})}}});
+  w.MediaRecorder=class {static isTypeSupported(){return true}constructor(s,o){this.mimeType=o.mimeType;this.state='inactive'}start(){started++;this.state='recording'}stop(){this.state='inactive';this.ondataavailable({data:new w.Blob(['audio'],{type:this.mimeType})});this.onstop()}};
+  w.URL.createObjectURL=()=> 'blob:audio';w.URL.revokeObjectURL=()=>{};
+ }});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:9,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  assert.match(w.document.querySelector('.vb-media-status').textContent,/Ожидаем разрешения/);w.dispatchEvent(new w.Event('blur'));assert.ok(w.document.querySelector('.vb-modal'));
+  resolvePermission({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));assert.equal(stopped,1);assert.equal(started,0);
+  assert.match(w.document.querySelector('.vb-media-status').textContent,/Нажмите «Начать запись»/);buttonByText(w,'Начать запись').click();await new Promise(r=>setTimeout(r,5));assert.equal(started,1);
+  buttonByText(w,'Остановить запись').click();assert.equal(stopped,2);assert.equal(buttonByText(w,'Отправить запись').hidden,false);
+ }finally{w.close();}
+});
+test('pointer cancellation during permission does not leave a hidden capture or dismiss the recovery UI',async()=>{
+ let resolvePermission,stopped=0,started=0;const dom=await app({user:'alice',setup(w){
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>{resolvePermission=r})}});w.MediaRecorder=class{start(){started++}};
+ }});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:10,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  const cancel=new w.Event('pointercancel',{bubbles:true});Object.assign(cancel,{pointerId:10,pointerType:'touch'});w.dispatchEvent(cancel);assert.ok(w.document.querySelector('.vb-modal'));
+  resolvePermission({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));assert.equal(stopped,1);assert.equal(started,0);assert.equal(buttonByText(w,'Начать запись').disabled,false);
+ }finally{w.close();}
+});
