@@ -158,3 +158,62 @@ test('a storage failure does not replace the previous wallpaper',async()=>{
   assert.ok(requests.includes('https://material-caht.onrender.com/api/send_code'));
  }finally{w.close();}
 });
+test('profile editor opens without a password dialog but does not save without a session',async()=>{
+ let requests=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});return response([])}});const w=dom.window;try{
+  w.document.getElementById('account-button').click();buttonByText(w,'✎  Редактировать профиль').click();
+  assert.ok(w.document.querySelector('form.vb-profile-actions'));assert.equal(w.document.querySelector('.vb-modal input[type=password]'),null);
+  const form=w.document.querySelector('form.vb-profile-actions');form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+  assert.equal(requests.some(r=>r.opt.method==='PUT'),false);assert.match(w.document.getElementById('toast-text').textContent,/Войдите заново/);
+ }finally{w.close();}
+});
+test('auth form uses a bare input view and returns to the first card',async()=>{
+ const dom=await app();const w=dom.window;try{
+  const card=w.document.querySelector('.auth-card');w.showForm(true);assert.ok(card.classList.contains('auth-form-view'));assert.ok(w.document.querySelector('#input-pass'));
+  w.closeForm();assert.equal(card.classList.contains('auth-form-view'),false);assert.equal(w.document.getElementById('start-buttons').style.display,'flex');
+ }finally{w.close();}
+});
+test('video attachment uses multipart upload and sends a normalized HTTPS media URL',async()=>{
+ let requests=[];const dom=await app({user:'alice',url:'https://appassets.androidplatform.net/index.html',fetch:async(url,opt={})=>{
+  requests.push({url,opt});if(url.endsWith('/upload'))return response({url:'http://material-caht.onrender.com/uploads/movie.mp4'});return response([]);
+ },setup(w){const old=w.HTMLInputElement.prototype.click;w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['video'],'видео.mp4',{type:'video/mp4'})]});this.dispatchEvent(new w.Event('change'));}else old.call(this);};}});const w=dom.window;try{
+  w.document.getElementById('attach-button').click();buttonByText(w,'Выберите фото или видео').click();await new Promise(resolve=>setTimeout(resolve,30));
+  const up=requests.find(r=>r.url.endsWith('/upload'));assert.ok(up);assert.equal(up.opt.headers,undefined);const file=up.opt.body.get('file');assert.match(file.name,/^media_.*\.mp4$/);assert.equal(file.type,'video/mp4');
+  const msg=requests.find(r=>r.url.endsWith('/messages')&&r.opt.method==='POST');assert.ok(msg);assert.deepEqual(JSON.parse(msg.opt.body),{chat_id:'global',sender:'alice',media_url:'https://material-caht.onrender.com/uploads/movie.mp4',msg_type:'video'});
+ }finally{w.close();}
+});
+test('failed media upload never creates a message',async()=>{
+ let requests=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});return url.endsWith('/upload')?response({detail:'upload failed'},500):response([])},setup(w){w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['photo'],'pic.png',{type:'image/png'})]});this.dispatchEvent(new w.Event('change'));}};}});const w=dom.window;try{
+  w.document.getElementById('attach-button').click();buttonByText(w,'Выберите фото или видео').click();await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(requests.some(r=>r.url.endsWith('/messages')&&r.opt.method==='POST'),false);assert.match(w.document.getElementById('toast-text').textContent,/upload failed/);
+ }finally{w.close();}
+});
+test('voice and round video record, release tracks, and upload the correct message types',async()=>{
+ let requests=[], stopped=0, constraints=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});return url.endsWith('/upload')?response({url:'https://material-caht.onrender.com/uploads/record.webm'}):response([])},setup(w){
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:async c=>{constraints.push(c);return {getTracks:()=>[{stop:()=>stopped++}]}}}});
+  w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.HTMLMediaElement.prototype.play=()=>Promise.resolve();
+  w.MediaRecorder=class {static isTypeSupported(){return true}constructor(stream,opt){this.mimeType=opt.mimeType;this.state='inactive'}start(){this.state='recording'}stop(){this.state='inactive';this.ondataavailable({data:new w.Blob(['record'],{type:this.mimeType})});this.onstop()}};
+ }});const w=dom.window;try{
+  for(const [label,type] of [['Голосовое сообщение','audio'],['Записать кружок','circle']]){
+   w.document.getElementById('attach-button').click();buttonByText(w,label).click();buttonByText(w,'Начать запись').click();await new Promise(resolve=>setTimeout(resolve,5));
+   buttonByText(w,'Остановить запись').click();buttonByText(w,'Отправить запись').click();await new Promise(resolve=>setTimeout(resolve,25));
+   assert.ok(requests.some(r=>r.url.endsWith('/messages')&&r.opt.method==='POST'&&JSON.parse(r.opt.body).msg_type===type));
+  }
+  assert.equal(constraints[0].video,false);assert.equal(constraints[1].video.facingMode,'user');assert.equal(stopped,2);
+ }finally{w.close();}
+});
+test('closing a recording releases the microphone even if permission arrives late',async()=>{
+ let finish,stopped=0;const dom=await app({user:'alice',setup(w){Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(resolve=>{finish=()=>resolve({getTracks:()=>[{stop:()=>stopped++}]})})}});w.MediaRecorder=class{};}});const w=dom.window;try{
+  w.document.getElementById('attach-button').click();buttonByText(w,'Голосовое сообщение').click();buttonByText(w,'Начать запись').click();buttonByText(w,'Отмена').click();finish();await new Promise(resolve=>setTimeout(resolve,10));assert.equal(stopped,1);
+ }finally{w.close();}
+});
+test('old same-server HTTP media is shown via HTTPS and round videos are circular',async()=>{
+ const dom=await app({user:'alice',url:'https://appassets.androidplatform.net/index.html',fetch:async(url)=>url.endsWith('/messages/global')?response([{id:1,sender:'alice',text:'',media_url:'http://material-caht.onrender.com/uploads/test.webm',type:'circle'}]):response([])});const w=dom.window;try{
+  await new Promise(resolve=>setTimeout(resolve,15));const video=w.document.querySelector('.vb-bubble video');assert.ok(video);assert.equal(video.src,'https://material-caht.onrender.com/uploads/test.webm');assert.ok(video.classList.contains('vb-circle-video'));assert.equal(video.controls,true);
+ }finally{w.close();}
+});
+test('message API error after an upload is not reported as sent',async()=>{
+ let requests=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});if(url.endsWith('/upload'))return response({url:'https://material-caht.onrender.com/uploads/pic.png'});if(url.endsWith('/messages')&&opt.method==='POST')return response({status:'error',detail:'failed'});return response([])},setup(w){w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['photo'],'pic.png',{type:'image/png'})]});this.dispatchEvent(new w.Event('change'));}};}});const w=dom.window;try{
+  w.document.getElementById('attach-button').click();buttonByText(w,'Выберите фото или видео').click();await new Promise(resolve=>setTimeout(resolve,20));
+  assert.match(w.document.getElementById('toast-text').textContent,/failed/);
+ }finally{w.close();}
+});

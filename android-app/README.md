@@ -11,3 +11,5 @@ Package ID is `app.materialchat.variantb`, minimum Android 8 (API 26), target AP
 No Android emulator or device was available for this build. Installation, file picker, UI and live server connectivity need a device test. A server challenge or missing server features cannot be fixed by the wrapper alone.
 
 The beta was assembled in the workspace using Android build tools (rather than Gradle) and signed with a locally generated private key kept outside Git in `/home/user/.material-chat-signing/`. Preserve that directory securely if future beta updates must be signed with the same identity; it is not included in the repository. The Android Studio build procedure above is a source-based alternative and is not guaranteed to be byte-for-byte identical.
+
+The updated wrapper requests microphone and camera permissions only for the bundled app origin and only when a recording is requested. Rebuild the APK to include these changes. An update to the existing beta APK requires its original signing key; do not uninstall the previous app without backing up its local data.

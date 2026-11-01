@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, shell, session, systemPreferences } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createLocalServer, HOST, PORT } = require('./local-server');
@@ -22,6 +22,40 @@ if (!app.requestSingleInstanceLock()) {
     let html;
     try { html = fs.readFileSync(htmlPath); }
     catch (error) { dialog.showErrorBox('Material Chat', `Could not load the app: ${error.message}`); app.quit(); return; }
+    // Deny implicit permission checks: media must go through the explicit prompt below.
+    session.defaultSession.setPermissionCheckHandler((contents, permission, origin, details) =>
+      permission === 'clipboard-sanitized-write' && contents && contents.getURL() === APP_URL &&
+      origin === `http://${HOST}:${PORT}` && details.isMainFrame === true);
+    // Only the bundled main frame can request microphone/camera, after explicit user approval.
+    session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
+      const allowed = permission === 'media' && contents && contents.getURL() === APP_URL &&
+        details.isMainFrame === true && details.requestingUrl === APP_URL &&
+        Array.isArray(details.mediaTypes) && details.mediaTypes.length > 0 &&
+        details.mediaTypes.every(type => type === 'audio' || type === 'video');
+      if (!allowed) { callback(false); return; }
+      const types = [...new Set(details.mediaTypes)];
+      const prompts = {
+        ru: ['Разрешить', 'Отмена', 'Разрешить доступ к микрофону для записи?', 'Разрешить доступ к камере и микрофону для записи?'],
+        en: ['Allow', 'Cancel', 'Allow microphone access to record?', 'Allow camera and microphone access to record?'],
+        de: ['Erlauben', 'Abbrechen', 'Mikrofonzugriff für die Aufnahme erlauben?', 'Kamera- und Mikrofonzugriff für die Aufnahme erlauben?'],
+        uk: ['Дозволити', 'Скасувати', 'Дозволити доступ до мікрофона для запису?', 'Дозволити доступ до камери та мікрофона для запису?'],
+        fr: ['Autoriser', 'Annuler', 'Autoriser le microphone pour enregistrer ?', 'Autoriser la caméra et le microphone pour enregistrer ?']
+      };
+      const labels = prompts[app.getLocale().slice(0, 2)] || prompts.en;
+      dialog.showMessageBox(window, {
+        type: 'question', buttons: labels.slice(0, 2), defaultId: 1, cancelId: 1,
+        message: labels[types.includes('video') ? 3 : 2]
+      }).then(async result => {
+        if (result.response !== 0 || contents.isDestroyed() || contents.getURL() !== APP_URL) return callback(false);
+        if (process.platform === 'darwin') {
+          for (const type of types) {
+            const granted = await systemPreferences.askForMediaAccess(type === 'video' ? 'camera' : 'microphone');
+            if (!granted) return callback(false);
+          }
+        }
+        callback(true);
+      }).catch(() => callback(false));
+    });
     server = createLocalServer(html);
     server.once('error', error => {
       dialog.showErrorBox('Material Chat', `Could not start the local app. Port ${PORT} may already be in use.\n${error.message}`);

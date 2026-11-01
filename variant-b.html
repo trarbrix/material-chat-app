@@ -331,8 +331,13 @@
         .auth-form, #start-buttons { flex-shrink: 0; }
         .auth-step-leave { animation: authStepOut 360ms ease-in both; }
         .auth-step-enter { animation: authStepIn 420ms cubic-bezier(.2, 0, 0, 1) both; }
-        @keyframes authStepOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-18px); } }
-        @keyframes authStepIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes authStepOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-48px); } }
+        @keyframes authStepIn { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: translateX(0); } }
+        .auth-step-back-leave { animation: authBackOut 360ms ease-in both; }
+        .auth-step-back-enter { animation: authBackIn 420ms cubic-bezier(.2, 0, 0, 1) both; }
+        @keyframes authBackOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(48px); } }
+        @keyframes authBackIn { from { opacity:0; transform:translateX(-48px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes authArrival { from { opacity:0; transform:translateY(26px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
         @media (prefers-reduced-motion: reduce) {
             .auth-card { transition: none; }
             .auth-step-leave, .auth-step-enter { animation: none; }
@@ -341,6 +346,24 @@
 
 #auth-screen { --md-sys-color-primary:#6750A4;--md-sys-color-on-primary:#fff;--md-sys-color-surface:#FEF7FF;--md-sys-color-surface-container:#F3EDF7;--md-sys-color-on-surface:#1D1B20;--md-sys-color-outline:#79747E;--md-sys-color-surface-variant:#E7E0EC;--md-sys-shape-corner-extra-large:28px;--md-sys-shape-corner-full:9999px;--input-radius:999px;--input-bg:#E7E0EC;position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:#FEF7FF;color:#1D1B20;font-family:Roboto,sans-serif;box-sizing:border-box;overflow:auto} #auth-screen[hidden]{display:none} #auth-screen *{box-sizing:border-box} #auth-screen .anim-select{padding:9px;border:1px solid #79747e;border-radius:12px;background:#fff;color:#1d1b20} #auth-screen .auth-title{margin:0} .vb-toast{z-index:1200} @media(max-width:620px){.vb-app .vb-shell,.vb-sidebar,.vb-main,.vb-detail{height:100vh;height:100dvh}.vb-composer-area{padding-bottom:max(15px,env(safe-area-inset-bottom))}.vb-detail-body{padding-bottom:max(24px,env(safe-area-inset-bottom))}}
 
+
+#auth-screen { background: radial-gradient(ellipse at 16% 18%,#e5dfff 0,transparent 45%), radial-gradient(ellipse at 85% 80%,#ddd7fa 0,transparent 42%), #f8f6ff; isolation:isolate; }
+#auth-screen::before,#auth-screen::after { content:""; position:fixed; z-index:0; width:min(43vw,420px); aspect-ratio:1; border-radius:50%; border:1px solid rgba(105,87,219,.16); pointer-events:none; }
+#auth-screen::before { left:-12vw; bottom:-20vh; box-shadow:0 0 0 36px rgba(105,87,219,.025),0 0 0 72px rgba(105,87,219,.025); }
+#auth-screen::after { right:-9vw; top:-24vh; box-shadow:0 0 0 42px rgba(105,87,219,.025),0 0 0 84px rgba(105,87,219,.025); }
+#auth-screen:not([hidden]):not(.auth-no-motion) .auth-card { animation:authArrival 600ms cubic-bezier(.2,0,0,1) both; }
+#auth-screen .auth-card { background:rgba(255,255,255,.88); box-shadow:0 22px 70px rgba(60,45,140,.14); }
+#auth-screen .auth-card.auth-form-view { background:transparent; box-shadow:none; }
+#auth-screen .auth-form input { background:rgba(255,255,255,.8); }
+#auth-screen.auth-no-motion .auth-card { animation:none; }
+.vb-bubble img,.vb-bubble video { display:block; max-width:min(100%,300px); max-height:360px; border-radius:12px; margin-top:7px; }
+.vb-bubble audio { display:block; max-width:min(100%,300px); margin-top:7px; }
+.vb-bubble video.vb-circle-video,.vb-record-preview.vb-circle-video { width:220px; height:220px; border-radius:50%; object-fit:cover; background:#222; }
+.vb-record-preview { display:block; max-width:100%; margin:12px auto; border-radius:12px; }
+.vb-media-status { color:var(--vb-soft); font-size:11px; }
+.vb-media-actions { display:grid; gap:8px; margin-top:12px; }
+.vb-media-actions button { width:100%; border:1px solid var(--vb-border); background:var(--vb-subtle); color:var(--vb-accent); border-radius:10px; padding:11px; font-weight:700; }
+@media (prefers-reduced-motion: reduce) { #auth-screen .auth-card,.auth-step-back-leave,.auth-step-back-enter { animation:none !important; } }
 
 .vb-folders{display:flex;gap:6px;overflow:auto;padding:0 3px 12px}.vb-folder{flex:none;border:1px solid var(--vb-border);background:var(--vb-card);color:var(--vb-soft);border-radius:999px;padding:6px 9px;font-size:10px}.vb-folder.selected{color:var(--vb-accent);background:var(--vb-tint)}
 .vb-folder-check{display:flex;gap:10px;align-items:center;margin:10px 0;font-size:12px}.vb-emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);max-height:230px;overflow:auto}.vb-emoji-grid button,.vb-emoji-groups button{border:0;background:transparent;padding:5px;font-size:22px}.vb-emoji-groups{display:flex;overflow:auto;gap:3px;margin:8px 0}.vb-modal form{display:flex;flex-direction:column;gap:10px}.vb-modal button{min-height:34px}.vb-modal small{color:var(--vb-soft);font-size:10px;line-height:1.5}.vb-setting-select{width:100%;padding:9px;border:1px solid var(--vb-border);border-radius:8px;color:var(--vb-ink);background:var(--vb-subtle)}
@@ -571,6 +594,7 @@ const translations = {
     avatarShape: "circle",
   };
   if (localStorage.getItem('profile-token')?.startsWith('local:')) { user = ''; token = ''; localStorage.removeItem('user'); localStorage.removeItem('profile-token'); localStorage.removeItem('profile-token-owner'); }
+  let profileAvailable = null;
   let authors = {};
   let chatId = "global";
   let chatTitle = "Global Chat";
@@ -608,6 +632,26 @@ Object.assign(translations, {
         'Неверный код или ошибка регистрации':['Incorrect code or registration failed','Falscher Code oder Registrierung fehlgeschlagen','Невірний код або помилка реєстрації','Code incorrect ou échec de l’inscription'],
         'Подтвердите пароль для изменения профиля':['Enter your password to edit your profile','Passwort zur Profilbearbeitung eingeben','Введіть пароль для зміни профілю','Saisissez votre mot de passe pour modifier votre profil'],
         'Продолжить':['Continue','Weiter','Продовжити','Continuer'],
+        'Войти заново':['Sign in again','Erneut anmelden','Увійти знову','Se reconnecter'],
+        'Сессия профиля закончилась. Войдите заново.':['Profile session expired. Sign in again.','Profilsitzung abgelaufen. Bitte erneut anmelden.','Сесія профілю завершилась. Увійдіть знову.','Session du profil expirée. Reconnectez-vous.'],
+        'Голосовое сообщение':['Voice message','Sprachnachricht','Голосове повідомлення','Message vocal'],
+        'Записать кружок':['Record video message','Videonachricht aufnehmen','Записати відеоповідомлення','Enregistrer un message vidéo'],
+        'Начать запись':['Start recording','Aufnahme starten','Почати запис','Démarrer l’enregistrement'],
+        'Остановить запись':['Stop recording','Aufnahme stoppen','Зупинити запис','Arrêter l’enregistrement'],
+        'Отправить запись':['Send recording','Aufnahme senden','Надіслати запис','Envoyer l’enregistrement'],
+        'Запись готова':['Recording ready','Aufnahme bereit','Запис готовий','Enregistrement prêt'],
+        'Идёт запись (до 60 секунд)':['Recording (up to 60 seconds)','Aufnahme läuft (bis zu 60 Sekunden)','Триває запис (до 60 секунд)','Enregistrement (60 secondes maximum)'],
+        'Запись недоступна на этом устройстве':['Recording is unavailable on this device','Aufnahme auf diesem Gerät nicht verfügbar','Запис недоступний на цьому пристрої','Enregistrement indisponible sur cet appareil'],
+        'Нет доступа к микрофону или камере':['Microphone or camera access denied','Kein Zugriff auf Mikrofon oder Kamera','Немає доступу до мікрофона або камери','Accès au microphone ou à la caméra refusé'],
+        'Файл слишком большой (максимум 20 МБ)':['File is too large (maximum 20 MB)','Datei zu groß (maximal 20 MB)','Файл завеликий (максимум 20 МБ)','Fichier trop volumineux (20 Mo maximum)'],
+        'Сервер не принял файл':['The server did not accept the file','Der Server hat die Datei nicht angenommen','Сервер не прийняв файл','Le serveur n’a pas accepté le fichier'],
+        'Сообщение не отправлено':['Message was not sent','Nachricht wurde nicht gesendet','Повідомлення не надіслано','Message non envoyé'],
+        'Загрузка файла...':['Uploading file...','Datei wird hochgeladen...','Завантаження файлу...','Téléversement du fichier...'],
+        'Отправлено':['Sent','Gesendet','Надіслано','Envoyé'],
+        'Не удалось отправить':['Could not send','Senden fehlgeschlagen','Не вдалося надіслати','Envoi impossible'],
+        'Выберите фото или видео':['Choose a photo or video','Foto oder Video auswählen','Оберіть фото або відео','Choisir une photo ou une vidéo'],
+        'Аудиофайл':['Audio file','Audiodatei','Аудіофайл','Fichier audio'],
+        'Отмена':['Cancel','Abbrechen','Скасувати','Annuler'],
         'Юзернейм занят':['Username is already taken','Benutzername ist bereits vergeben','Юзернейм зайнятий','Ce nom d’utilisateur est déjà pris'],
         'Проверьте ник, юзернейм и аватарку':['Check nickname, username and avatar','Anzeigename, Benutzername und Profilbild prüfen','Перевірте нік, юзернейм та аватар','Vérifiez le pseudo, le nom d’utilisateur et l’avatar'],
         'Профиль сохранён':['Profile saved','Profil gespeichert','Профіль збережено','Profil enregistré'],
@@ -981,9 +1025,10 @@ Object.assign(translations, {
         ? await api("/profile/me?user=" + encodeURIComponent(user))
         : localProfile(user);
       if (owner !== user || !window.document) return;
-      profile=loaded;
-    } catch (_) {
+      profile=loaded; profileAvailable = true;
+    } catch (err) {
       if (owner !== user || !window.document) return;
+      profileAvailable = err.status === 404 || err.status === 405 ? false : err.status === 401 ? true : null;
       profile = { nickname: '', handle: '', avatar: '', avatarShape: 'circle' };
     }
     profile.avatarShape=localStorage.getItem('avatar-shape:'+user)||profile.avatarShape||'circle';
@@ -1119,7 +1164,7 @@ Object.assign(translations, {
         bubble.append(el("small", "vb-forwarded", tr("↗ переслано")));
       if (m.edited_at) bubble.append(el("small", "vb-edited", tr("изменено")));
       if (m.media_url && !m.deleted_at) {
-        try { const url=new URL(m.media_url,new URL(API_BASE+'/',location.href));if(['http:','https:'].includes(url.protocol)){const type=m.type||m.msg_type||'image';const media=el(type==='audio'?'audio':(['video','circle'].includes(type)?'video':'img'));media.src=url.href;if(type==='image')media.alt=tr('Фото');else media.controls=true;bubble.append(media);} } catch (_) {}
+        try { const url=mediaUrl(m.media_url);const type=m.type||m.msg_type||'image';const media=el(type==='audio'?'audio':(['video','circle'].includes(type)?'video':'img'));media.src=url;if(type==='image')media.alt=tr('Фото');else {media.controls=true;media.playsInline=true;if(type==='circle')media.classList.add('vb-circle-video');}bubble.append(media); } catch (_) {}
       }
       const more = el("button", "vb-bubble-more", tr("···"));
       more.type = "button";
@@ -1438,11 +1483,14 @@ Object.assign(translations, {
       container.append(form);
     });
   }
+  let modalCleanup = null;
   function closeModal() {
+    if (modalCleanup) { const cleanup = modalCleanup; modalCleanup = null; cleanup(); }
     const root = $("popup-root");
     root.querySelectorAll(".vb-modal-scrim").forEach((n) => n.remove());
   }
   function openModal(title, build) {
+    closeModal();
     const root = $("popup-root");
     closeMenu();
     const scrim = el("div", "vb-modal-scrim");
@@ -1468,15 +1516,16 @@ Object.assign(translations, {
     const leaving = toForm ? start : form, entering = toForm ? form : start;
     const animated = localStorage.getItem('anim') !== 'false' && localStorage.getItem('power-saving') !== 'true' && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     authTransitioning = true; card.classList.add('auth-transitioning'); card.setAttribute('aria-busy','true');
-    const swap = () => { leaving.classList.remove('auth-step-leave'); const oldHeight=card.getBoundingClientRect().height; if(prepare)prepare(); start.style.display=toForm?'none':'flex';form.classList.toggle('active',toForm);
+    const leaveClass=toForm?'auth-step-leave':'auth-step-back-leave', enterClass=toForm?'auth-step-enter':'auth-step-back-enter';
+    const swap = () => { leaving.classList.remove(leaveClass); const oldHeight=card.getBoundingClientRect().height; if(prepare)prepare(); start.style.display=toForm?'none':'flex';form.classList.toggle('active',toForm); card.classList.toggle('auth-form-view',toForm);
       if(!animated){ card.classList.remove('auth-transitioning');card.removeAttribute('aria-busy');authTransitioning=false;return; }
       const newHeight=card.getBoundingClientRect().height;if(oldHeight&&newHeight&&oldHeight!==newHeight){card.style.height=oldHeight+'px';void card.offsetHeight;card.style.height=newHeight+'px';}
-      entering.classList.add('auth-step-enter');setTimeout(()=>{entering.classList.remove('auth-step-enter');card.style.height='';card.classList.remove('auth-transitioning');card.removeAttribute('aria-busy');authTransitioning=false;},420);
-    }; if(!animated)return swap();leaving.classList.add('auth-step-leave');setTimeout(swap,360);
+      entering.classList.add(enterClass);setTimeout(()=>{entering.classList.remove(enterClass);card.style.height='';card.classList.remove('auth-transitioning');card.removeAttribute('aria-busy');authTransitioning=false;},420);
+    }; if(!animated)return swap();leaving.classList.add(leaveClass);setTimeout(swap,360);
   }
   window.showForm = function(login){transitionAuthStep(true,()=>{authMode=login?'login':'register';codeRequested=false;$('code-field').style.display='none';$('input-code').value='';$('btn-submit').textContent=tr(login?'Войти':'Получить код');});};
   window.closeForm = function(){transitionAuthStep(false);};
-  function openLogin() { $('auth-screen').hidden=false; app.setAttribute('inert',''); }
+  function openLogin() { const screen=$('auth-screen');screen.classList.toggle('auth-no-motion',localStorage.getItem('anim')==='false'||localStorage.getItem('power-saving')==='true');screen.hidden=false; app.setAttribute('inert',''); }
   window.submitAuth = async function() {
     const tg=$('input-tg').value.trim().replace(/^@+/,'');const pass=$('input-pass').value.trim();const btn=$('btn-submit');
     if(!tg||!pass)return toast(tr('Заполните поля'));
@@ -1648,12 +1697,12 @@ Object.assign(translations, {
     }
     body.append(actions);
   }
-  function requestProfilePassword() {
-    openModal(tr('Подтвердите пароль для изменения профиля'),modal=>{const form=el('form');const pass=el('input','vb-modal-field');pass.type='password';pass.autocomplete='current-password';pass.placeholder=tr('Пароль');const btn=el('button','',tr('Продолжить'));btn.type='submit';form.append(pass,btn);form.onsubmit=async e=>{e.preventDefault();btn.disabled=true;try{const res=await api('/profile/session',{method:'POST',body:JSON.stringify({identifier:user,password:pass.value})});if(!res.token)throw Error(tr('Сервер профилей ещё не подключён'));token=res.token;sessionStorage.setItem('profile-token',token);sessionStorage.setItem('profile-token-owner',user);pass.value='';closeModal();await loadProfile();editProfileForm($('detail-body'));}catch(err){toast(err.status===404?tr('Сервер профилей ещё не подключён'):err.message);}finally{btn.disabled=false;}};modal.append(form);});
-  }
   function editProfileForm(body) {
-    if (!token) return requestProfilePassword();
     const form = el("form", "vb-profile-actions");
+    if (!token && apiMode) {
+      form.append(el('small','vb-settings-note',tr(profileAvailable === false ? 'Сервер профилей ещё не подключён' : 'Сессия профиля закончилась. Войдите заново.')));
+      if (profileAvailable !== false) { const signIn=el('button','',tr('Войти заново'));signIn.type='button';signIn.onclick=()=>{openLogin();window.showForm(true);};form.append(signIn); }
+    }
     function label(text, input) {
       const l = el("label", "", text);
       l.append(input);
@@ -1751,6 +1800,7 @@ Object.assign(translations, {
         toast("Юзернейм: 3–32 символа, латиница/цифры/_");
         return;
       }
+      if (!token && apiMode) { toast(tr(profileAvailable === false ? 'Сервер профилей ещё не подключён' : 'Сессия профиля закончилась. Войдите заново.')); return; }
       save.disabled = true;
       try {
         let data;
@@ -1786,7 +1836,7 @@ Object.assign(translations, {
         renderPanel();
         toast("Профиль сохранён");
       } catch (err) {
-        toast(err.message);
+        toast(err.status === 401 ? tr('Сессия профиля закончилась. Войдите заново.') : err.status === 404 ? tr('Сервер профилей ещё не подключён') : err.message);
       } finally {
         save.disabled = false;
       }
@@ -2163,10 +2213,92 @@ Object.assign(translations, {
     }
   };
   $("emoji-button").onclick = openEmoji;
+  function mediaUrl(value) {
+    const apiRoot = new URL(API_BASE, location.href);
+    const url = new URL(value, apiRoot.origin + '/');
+    // Render's reverse proxy can return an http URL for its otherwise HTTPS upload.
+    if (url.protocol === 'http:' && apiRoot.protocol === 'https:' && url.hostname === apiRoot.hostname) url.protocol = 'https:';
+    if (!['http:','https:'].includes(url.protocol) || (location.protocol === 'https:' && url.protocol !== 'https:')) throw Error(tr('Сервер не принял файл'));
+    return url.href;
+  }
+  async function sendMedia(file, type, targetChat, sender) {
+    if (!file || !file.size) throw Error(tr('Сервер не принял файл'));
+    if (file.size > 20 * 1024 * 1024) throw Error(tr('Файл слишком большой (максимум 20 МБ)'));
+    if (!user || user !== sender) throw Error(tr('Войди, чтобы написать сообщение'));
+    const extension = (file.name.match(/\.([a-z0-9]{1,8})$/i) || [,'bin'])[1].toLowerCase();
+    const safeName = 'media_' + Date.now() + '_' + Math.random().toString(36).slice(2,10) + '.' + extension;
+    const data = new FormData(); data.append('file', file, safeName);
+    toast(tr('Загрузка файла...'));
+    const upload = await fetch(API_BASE+'/upload',{method:'POST',body:data});
+    const res = await upload.json().catch(()=>null);
+    if (!upload.ok || !res || typeof res.url !== 'string') throw Error(res?.detail || tr('Сервер не принял файл')+' (HTTP '+upload.status+')');
+    if (user !== sender) throw Error(tr('Сообщение не отправлено'));
+    const sent=await api('/messages',{method:'POST',body:JSON.stringify({chat_id:targetChat,sender,media_url:mediaUrl(res.url),msg_type:type})});
+    if (sent?.status === 'error') throw Error(sent.detail || tr('Сообщение не отправлено'));
+    if (chatId === targetChat) { await loadMessages(true); scrollDown(); }
+    toast(tr('Отправлено'));
+  }
+  function chooseMedia(accept) {
+    const targetChat=chatId, sender=user;
+    const input=document.createElement('input');input.type='file';input.accept=accept;
+    input.onchange=async()=>{
+      const file=input.files?.[0];if(!file)return;
+      const type=file.type.startsWith('audio/')?'audio':file.type.startsWith('video/')?'video':file.type.startsWith('image/')?'image':'';
+      if(!type){toast(tr('Сервер не принял файл'));return;}
+      try { await sendMedia(file,type,targetChat,sender); }
+      catch(e) { toast(tr('Не удалось отправить')+': '+e.message); }
+    };input.click();
+  }
+  function recordMedia(kind) {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { toast(tr('Запись недоступна на этом устройстве'));return; }
+    const targetChat=chatId, sender=user;
+    let stream=null, recorder=null, chunks=[], file=null, timer=null, previewUrl='', closed=false;
+    openModal(tr(kind==='circle'?'Записать кружок':'Голосовое сообщение'),modal=>{
+      const status=el('p','vb-media-status',tr('Начать запись'));
+      const preview=el(kind==='circle'?'video':'audio','vb-record-preview'+(kind==='circle'?' vb-circle-video':''));
+      preview.hidden=true;preview.playsInline=true;preview.controls=false;
+      const actions=el('div','vb-media-actions');
+      const start=el('button','',tr('Начать запись'));start.type='button';
+      const stop=el('button','',tr('Остановить запись'));stop.type='button';stop.hidden=true;
+      const send=el('button','',tr('Отправить запись'));send.type='button';send.hidden=true;
+      const cancel=el('button','',tr('Отмена'));cancel.type='button';cancel.onclick=closeModal;
+      actions.append(start,stop,send,cancel);modal.append(status,preview,actions);
+      function release() { if(timer)clearTimeout(timer);timer=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;} }
+      modalCleanup=()=>{closed=true;release();if(recorder&&recorder.state!=='inactive')recorder.stop();if(previewUrl)URL.revokeObjectURL(previewUrl);};
+      start.onclick=async()=>{
+        start.disabled=true;
+        try {
+          const acquired=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='circle'?{facingMode:'user',width:{ideal:480},height:{ideal:480}}:false});
+          if(closed){acquired.getTracks().forEach(t=>t.stop());return;}stream=acquired;
+          const candidates=kind==='circle'?['video/webm;codecs=vp8,opus','video/webm','video/mp4']:['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+          const mime=candidates.find(t=>!MediaRecorder.isTypeSupported||MediaRecorder.isTypeSupported(t));
+          recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+          recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+          recorder.onerror=()=>{release();status.textContent=tr('Запись недоступна на этом устройстве');stop.hidden=true;start.hidden=false;start.disabled=false;};
+          recorder.onstop=()=>{
+            release();if(closed)return;
+            const contentType=recorder.mimeType||chunks[0]?.type|| (kind==='circle'?'video/webm':'audio/webm');
+            const blob=new Blob(chunks,{type:contentType});if(!blob.size){status.textContent=tr('Запись недоступна на этом устройстве');start.hidden=false;start.disabled=false;return;}
+            file=new File([blob],(kind==='circle'?'circle':'voice')+(contentType.includes('mp4')?'.mp4':'.webm'),{type:contentType});
+            if(previewUrl)URL.revokeObjectURL(previewUrl);preview.srcObject=null;previewUrl=URL.createObjectURL(blob);preview.src=previewUrl;preview.controls=true;preview.muted=false;preview.hidden=false;
+            status.textContent=tr('Запись готова');stop.hidden=true;send.hidden=false;
+          };
+          if(kind==='circle'){preview.hidden=false;preview.muted=true;preview.srcObject=stream;preview.play().catch(()=>{});}
+          recorder.start();status.textContent=tr('Идёт запись (до 60 секунд)');stop.hidden=false;start.hidden=true;
+          timer=setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop();},60000);
+        } catch(e) { release();status.textContent=tr('Нет доступа к микрофону или камере');start.disabled=false; }
+      };
+      stop.onclick=()=>{if(recorder&&recorder.state==='recording'){stop.disabled=true;recorder.stop();}};
+      send.onclick=async()=>{if(!file)return;send.disabled=true;try{await sendMedia(file,kind==='circle'?'circle':'audio',targetChat,sender);closeModal();}catch(e){toast(tr('Не удалось отправить')+': '+e.message);send.disabled=false;}};
+    });
+  }
   $("attach-button").onclick = () => {
     if(!user){openLogin();return;} if(chatId==='ai'){toast(tr('Файлы пока недоступны в ИИ-чате'));return;}
-    const input=document.createElement('input');input.type='file';input.accept='image/*,video/*,audio/*';
-    input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{const data=new FormData();data.append('file',file);const upload=await fetch(API_BASE+'/upload',{method:'POST',body:data});if(!upload.ok)throw Error('HTTP '+upload.status);const res=await upload.json();if(!res.url)throw Error('upload');const type=file.type.startsWith('audio/')?'audio':file.type.startsWith('video/')?'video':'image';await api('/messages',{method:'POST',body:JSON.stringify({chat_id:chatId,sender:user,media_url:res.url,msg_type:type})});await loadMessages(true);scrollDown();}catch(e){toast(tr('Не удалось отправить')+': '+e.message);}};input.click();
+    openModal(tr('Прикрепить'),modal=>{
+      const actions=el('div','vb-media-actions');
+      [['Выберите фото или видео',()=>chooseMedia('image/*,video/*')],['Аудиофайл',()=>chooseMedia('audio/*')],['Голосовое сообщение',()=>recordMedia('audio')],['Записать кружок',()=>recordMedia('circle')]].forEach(([title,action])=>{const button=el('button','',tr(title));button.type='button';button.onclick=()=>{closeModal();action();};actions.append(button);});
+      modal.append(actions);
+    });
   };
   $("toast-close").onclick = () => {
     $("toast").hidden = true;

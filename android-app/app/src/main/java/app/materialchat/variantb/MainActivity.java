@@ -1,10 +1,13 @@
 package app.materialchat.variantb;
 
 import android.app.Activity;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -19,8 +22,10 @@ public final class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String APP_URL = "https://" + HOST + "/index.html";
     private static final int FILE_REQUEST = 412;
+    private static final int MEDIA_REQUEST = 413;
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
+    private PermissionRequest mediaRequest;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -59,6 +64,27 @@ public final class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override public void onPermissionRequest(PermissionRequest request) {
+                Uri origin = request.getOrigin();
+                if (mediaRequest != null || !"https".equals(origin.getScheme()) || !HOST.equals(origin.getHost()) || (origin.getPort() != -1 && origin.getPort() != 443)) {
+                    request.deny(); return;
+                }
+                ArrayList<String> needed = new ArrayList<>();
+                for (String resource : request.getResources()) {
+                    String permission;
+                    if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) permission = Manifest.permission.RECORD_AUDIO;
+                    else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) permission = Manifest.permission.CAMERA;
+                    else { request.deny(); return; }
+                    if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED && !needed.contains(permission)) needed.add(permission);
+                }
+                if (request.getResources().length == 0) { request.deny(); return; }
+                if (needed.isEmpty()) { request.grant(request.getResources()); return; }
+                mediaRequest = request;
+                requestPermissions(needed.toArray(new String[0]), MEDIA_REQUEST);
+            }
+            @Override public void onPermissionRequestCanceled(PermissionRequest request) {
+                if (mediaRequest == request) mediaRequest = null;
+            }
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
@@ -68,6 +94,15 @@ public final class MainActivity extends Activity {
             }
         });
         webView.loadUrl(APP_URL);
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != MEDIA_REQUEST || mediaRequest == null) return;
+        PermissionRequest request = mediaRequest; mediaRequest = null;
+        boolean granted = grantResults.length > 0;
+        for (int result : grantResults) if (result != PackageManager.PERMISSION_GRANTED) granted = false;
+        if (granted) request.grant(request.getResources()); else request.deny();
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -96,6 +131,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         if (fileCallback != null) { fileCallback.onReceiveValue(null); fileCallback = null; }
+        if (mediaRequest != null) { mediaRequest.deny(); mediaRequest = null; }
         webView.destroy();
         super.onDestroy();
     }

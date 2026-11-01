@@ -19,3 +19,5 @@ The beta is **not** code-signed or notarized: Windows SmartScreen and macOS Gate
 The app serves exactly one bundled HTML document on loopback `127.0.0.1:45382` for the lifetime of the app. This preserves a stable browser-storage origin. It is not an API proxy; requests go from Chromium directly to the existing HTTPS server. Server CORS/Cloudflare and other existing backend limitations still apply. The Electron renderer uses its sandbox with Node integration disabled; external links open outside the app. If the port is already occupied, startup fails rather than using another service.
 
 Settings, folders and other browser-local data live in Electron's own user-data directory and are not automatically migrated from a browser, the Linux AppImage or the Android APK. Do not remove an existing app or its profile without backing up data. Shared profiles still require deployment of the separate backend extension.
+
+The updated desktop wrapper requests microphone/camera access only from the bundled page, with a confirmation dialog and the operating system's permission where applicable. Recordings and actual permissions must be verified on each target operating system.

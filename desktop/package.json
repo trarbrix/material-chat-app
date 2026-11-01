@@ -21,12 +21,49 @@
   "build": {
     "appId": "app.materialchat.desktop",
     "productName": "Material Chat",
-    "directories": { "output": "dist", "buildResources": "assets" },
-    "files": ["main.js", "local-server.js", "package.json", "assets/icon.png"],
-    "extraResources": [{ "from": "../variant-b.html", "to": "variant-b.html" }],
-    "win": { "target": ["nsis"], "icon": "assets/icon.png" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
-    "mac": { "category": "public.app-category.social-networking", "icon": "assets/icon.png", "identity": null },
-    "linux": { "category": "Network", "icon": "assets/icon.png", "target": ["deb", "rpm"], "maintainer": "Material Chat" }
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "local-server.js",
+      "package.json",
+      "assets/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "../variant-b.html",
+        "to": "variant-b.html"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "icon": "assets/icon.png",
+      "identity": null,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Material Chat needs microphone access to record voice and video messages.",
+        "NSCameraUsageDescription": "Material Chat needs camera access to record video messages."
+      }
+    },
+    "linux": {
+      "category": "Network",
+      "icon": "assets/icon.png",
+      "target": [
+        "deb",
+        "rpm"
+      ],
+      "maintainer": "Material Chat"
+    }
   }
 }
