@@ -217,3 +217,14 @@ test('message API error after an upload is not reported as sent',async()=>{
   assert.match(w.document.getElementById('toast-text').textContent,/failed/);
  }finally{w.close();}
 });
+test('main app is branded Material Chat without a variant label',async()=>{
+ const dom=await app();const w=dom.window;try{
+  assert.equal(w.document.title,'Material Chat');assert.equal(w.document.querySelector('.vb-detail-footer').textContent.trim(),'MATERIAL CHAT');
+  assert.doesNotMatch(w.document.body.textContent,/вариант\s*b/i);
+ }finally{w.close();}
+});
+test('homepage points to the main HTML and preserves query and fragment',()=>{
+ const index=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+ assert.match(index,/location\.replace\('\.\/variant-b\.html'\s*\+\s*location\.search\s*\+\s*location\.hash\)/);
+ assert.match(index,/<a href="\.\/variant-b\.html">/);
+});
