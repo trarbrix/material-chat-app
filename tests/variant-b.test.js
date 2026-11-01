@@ -20,6 +20,9 @@ function response(data,status=200){return {ok:status>=200&&status<300,status,jso
 function buttonByText(w,text,root=w.document){return [...root.querySelectorAll('button')].find(b=>b.textContent.trim()===text);}
 function openSection(w,id){const button=w.document.querySelector(`[data-settings-section="${id}"]`);assert.ok(button,'section '+id);button.click();}
 function settingsBack(w){w.document.querySelector('.vb-settings-back').click();}
+function prepareGallery(w){w.URL.createObjectURL ||= ()=> 'blob:gallery';w.URL.revokeObjectURL ||= ()=>{};w.document.getElementById('gallery-button').click();buttonByText(w,'Добавить фото или видео').click();}
+function sendGallery(w){prepareGallery(w);buttonByText(w,'Отправить выбранное').click();}
+function prepareRecording(w,label){const record=w.document.getElementById('record-button');record.click();buttonByText(w,label).click();record.click();buttonByText(w,'Начать запись').click();buttonByText(w,'Начать запись').click();}
 test('new variant starts with the original registration dialog, and uses separate mobile panes',async()=>{
  const dom=await app();const w=dom.window;try{
   assert.equal(w.document.getElementById('auth-screen').hidden,false);
@@ -176,14 +179,14 @@ test('video attachment uses multipart upload and sends a normalized HTTPS media 
  let requests=[];const dom=await app({user:'alice',url:'https://appassets.androidplatform.net/index.html',fetch:async(url,opt={})=>{
   requests.push({url,opt});if(url.endsWith('/upload'))return response({url:'http://material-caht.onrender.com/uploads/movie.mp4'});return response([]);
  },setup(w){const old=w.HTMLInputElement.prototype.click;w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['video'],'видео.mp4',{type:'video/mp4'})]});this.dispatchEvent(new w.Event('change'));}else old.call(this);};}});const w=dom.window;try{
-  w.document.getElementById('attach-button').click();buttonByText(w,'Выберите фото или видео').click();await new Promise(resolve=>setTimeout(resolve,30));
+  sendGallery(w);await new Promise(resolve=>setTimeout(resolve,30));
   const up=requests.find(r=>r.url.endsWith('/upload'));assert.ok(up);assert.equal(up.opt.headers,undefined);const file=up.opt.body.get('file');assert.match(file.name,/^media_.*\.mp4$/);assert.equal(file.type,'video/mp4');
   const msg=requests.find(r=>r.url.endsWith('/messages')&&r.opt.method==='POST');assert.ok(msg);assert.deepEqual(JSON.parse(msg.opt.body),{chat_id:'global',sender:'alice',media_url:'https://material-caht.onrender.com/uploads/movie.mp4',msg_type:'video'});
  }finally{w.close();}
 });
 test('failed media upload never creates a message',async()=>{
  let requests=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});return url.endsWith('/upload')?response({detail:'upload failed'},500):response([])},setup(w){w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['photo'],'pic.png',{type:'image/png'})]});this.dispatchEvent(new w.Event('change'));}};}});const w=dom.window;try{
-  w.document.getElementById('attach-button').click();buttonByText(w,'Выберите фото или видео').click();await new Promise(resolve=>setTimeout(resolve,20));
+  sendGallery(w);await new Promise(resolve=>setTimeout(resolve,20));
   assert.equal(requests.some(r=>r.url.endsWith('/messages')&&r.opt.method==='POST'),false);assert.match(w.document.getElementById('toast-text').textContent,/upload failed/);
  }finally{w.close();}
 });
@@ -194,7 +197,7 @@ test('voice and round video record, release tracks, and upload the correct messa
   w.MediaRecorder=class {static isTypeSupported(){return true}constructor(stream,opt){this.mimeType=opt.mimeType;this.state='inactive'}start(){this.state='recording'}stop(){this.state='inactive';this.ondataavailable({data:new w.Blob(['record'],{type:this.mimeType})});this.onstop()}};
  }});const w=dom.window;try{
   for(const [label,type] of [['Голосовое сообщение','audio'],['Записать кружок','circle']]){
-   w.document.getElementById('attach-button').click();buttonByText(w,label).click();buttonByText(w,'Начать запись').click();await new Promise(resolve=>setTimeout(resolve,5));
+   prepareRecording(w,label);await new Promise(resolve=>setTimeout(resolve,5));
    buttonByText(w,'Остановить запись').click();buttonByText(w,'Отправить запись').click();await new Promise(resolve=>setTimeout(resolve,25));
    assert.ok(requests.some(r=>r.url.endsWith('/messages')&&r.opt.method==='POST'&&JSON.parse(r.opt.body).msg_type===type));
   }
@@ -203,7 +206,7 @@ test('voice and round video record, release tracks, and upload the correct messa
 });
 test('closing a recording releases the microphone even if permission arrives late',async()=>{
  let finish,stopped=0;const dom=await app({user:'alice',setup(w){Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(resolve=>{finish=()=>resolve({getTracks:()=>[{stop:()=>stopped++}]})})}});w.MediaRecorder=class{};}});const w=dom.window;try{
-  w.document.getElementById('attach-button').click();buttonByText(w,'Голосовое сообщение').click();buttonByText(w,'Начать запись').click();buttonByText(w,'Отмена').click();finish();await new Promise(resolve=>setTimeout(resolve,10));assert.equal(stopped,1);
+  prepareRecording(w,'Голосовое сообщение');buttonByText(w,'Отмена').click();finish();await new Promise(resolve=>setTimeout(resolve,10));assert.equal(stopped,1);
  }finally{w.close();}
 });
 test('old same-server HTTP media is shown via HTTPS and round videos are circular',async()=>{
@@ -213,7 +216,7 @@ test('old same-server HTTP media is shown via HTTPS and round videos are circula
 });
 test('message API error after an upload is not reported as sent',async()=>{
  let requests=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});if(url.endsWith('/upload'))return response({url:'https://material-caht.onrender.com/uploads/pic.png'});if(url.endsWith('/messages')&&opt.method==='POST')return response({status:'error',detail:'failed'});return response([])},setup(w){w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['photo'],'pic.png',{type:'image/png'})]});this.dispatchEvent(new w.Event('change'));}};}});const w=dom.window;try{
-  w.document.getElementById('attach-button').click();buttonByText(w,'Выберите фото или видео').click();await new Promise(resolve=>setTimeout(resolve,20));
+  sendGallery(w);await new Promise(resolve=>setTimeout(resolve,20));
   assert.match(w.document.getElementById('toast-text').textContent,/failed/);
  }finally{w.close();}
 });
@@ -269,5 +272,57 @@ test('missing reaction backend is reported and no local reaction is faked',async
  const dom=await app({user:'alice',fetch:async(url,opt={})=>{if(url.endsWith('/messages/global'))return response([{id:1,sender:'alice',text:'hello'}]);if(url.includes('/reactions'))return response({},404);return response([])}});const w=dom.window;try{
   await new Promise(r=>setTimeout(r,10));w.document.querySelector('.vb-reaction-add').click();buttonByText(w,'👍').click();await new Promise(r=>setTimeout(r,10));
   assert.match(w.document.getElementById('toast-text').textContent,/Сервер реакций ещё не подключён/);assert.equal(w.document.querySelectorAll('.vb-reaction-chip').length,0);
+ }finally{w.close();}
+});
+test('gallery previews multiple selected items, removes them and waits for explicit send',async()=>{
+ let uploads=0,revoked=[];const dom=await app({user:'alice',fetch:async(url)=>{if(url.endsWith('/upload'))uploads++;return response([])},setup(w){
+  let n=0;w.URL.createObjectURL=()=>`blob:gallery${++n}`;w.URL.revokeObjectURL=u=>revoked.push(u);
+  w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['a'],'one.jpg',{type:'image/jpeg'}),new w.File(['b'],'two.mp4',{type:'video/mp4'})]});this.dispatchEvent(new w.Event('change'));}};
+ }});const w=dom.window;try{
+  w.document.getElementById('gallery-button').click();const picker=w.document.querySelector('.vb-gallery-modal input[type=file]');assert.equal(picker.multiple,true);
+  buttonByText(w,'Добавить фото или видео').click();assert.equal(w.document.querySelectorAll('.vb-gallery-item').length,2);assert.ok(w.document.querySelector('.vb-gallery-item video'));assert.equal(uploads,0);
+  w.document.querySelector('.vb-gallery-remove').click();assert.equal(w.document.querySelectorAll('.vb-gallery-item').length,1);assert.equal(revoked.length,1);
+  buttonByText(w,'Отмена').click();assert.equal(revoked.length,2);assert.equal(uploads,0);
+ }finally{w.close();}
+});
+test('short press chooses voice or circle and long press records until release',async()=>{
+ let constraints=[],stops=0,recordStops=0,requests=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});return url.endsWith('/upload')?response({url:'https://material-caht.onrender.com/uploads/circle.webm'}):response([])},setup(w){
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:async c=>{constraints.push(c);return {getTracks:()=>[{stop:()=>stops++}]}}}});
+  w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.HTMLMediaElement.prototype.play=()=>Promise.resolve();
+  w.MediaRecorder=class {static isTypeSupported(){return true}constructor(stream,opt){this.mimeType=opt.mimeType;this.state='inactive'}start(){this.state='recording'}stop(){recordStops++;this.state='inactive';this.ondataavailable({data:new w.Blob(['video'],{type:this.mimeType})});this.onstop()}};
+ }});const w=dom.window;try{
+  const record=w.document.getElementById('record-button');record.click();buttonByText(w,'Записать кружок').click();assert.equal(record.dataset.mode,'circle');
+  const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:2,pointerType:'touch',button:0});record.dispatchEvent(down);await new Promise(r=>setTimeout(r,390));
+  assert.equal(constraints.length,1);assert.equal(constraints[0].video.facingMode,'user');assert.ok(w.document.querySelector('.vb-modal'));
+  const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:2,pointerType:'touch',button:0});w.dispatchEvent(up);await new Promise(r=>setTimeout(r,5));
+  assert.equal(recordStops,1);assert.equal(stops,1);assert.equal(requests.some(r=>r.url.endsWith('/upload')),false);buttonByText(w,'Отправить запись').click();await new Promise(r=>setTimeout(r,20));
+  const msg=requests.find(r=>r.url.endsWith('/messages')&&r.opt.method==='POST');assert.equal(JSON.parse(msg.opt.body).msg_type,'circle');
+ }finally{w.close();}
+});
+test('releasing before permission arrives never starts a hidden recording',async()=>{
+ let resolveStream,stops=0,started=0;const dom=await app({user:'alice',setup(w){
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>{resolveStream=r})}});w.MediaRecorder=class {start(){started++}};
+ }});const w=dom.window;try{
+  const record=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:3,pointerType:'touch',button:0});record.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:3,pointerType:'touch'});w.dispatchEvent(up);resolveStream({getTracks:()=>[{stop:()=>stops++}]});await new Promise(r=>setTimeout(r,5));
+  assert.equal(started,0);assert.equal(stops,1);assert.match(w.document.querySelector('.vb-media-status').textContent,/Отпустили до разрешения/);
+ }finally{w.close();}
+});
+test('gallery sends files sequentially to the chat captured at selection time',async()=>{
+ let events=[],releaseFirst;const dom=await app({user:'alice',fetch:async(url,opt={})=>{
+  if(url.endsWith('/upload')){events.push('upload');if(events.length===1)await new Promise(r=>{releaseFirst=r});return response({url:'https://material-caht.onrender.com/uploads/test.png'});}
+  if(url.endsWith('/messages')&&opt.method==='POST')events.push(JSON.parse(opt.body));return response([]);
+ },setup(w){w.URL.createObjectURL=()=> 'blob:preview';w.URL.revokeObjectURL=()=>{};w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['a'],'one.png',{type:'image/png'}),new w.File(['b'],'two.mp4',{type:'video/mp4'})]});this.dispatchEvent(new w.Event('change'));}};}});const w=dom.window;try{
+  sendGallery(w);await new Promise(r=>setTimeout(r,5));assert.deepEqual(events,['upload']);releaseFirst();await new Promise(r=>setTimeout(r,30));
+  assert.equal(events.length,4);assert.equal(events[0],'upload');assert.equal(events[1].msg_type,'image');assert.equal(events[2],'upload');assert.equal(events[3].msg_type,'video');assert.ok([events[1],events[3]].every(m=>m.chat_id==='global'&&m.sender==='alice'));
+ }finally{w.close();}
+});
+test('closing gallery aborts the active upload and does not close a later modal',async()=>{
+ let events=[],signal;const dom=await app({user:'alice',fetch:async(url,opt={})=>{
+  if(url.endsWith('/upload')){events.push('upload');signal=opt.signal;return await new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted'))));}
+  if(url.endsWith('/messages')&&opt.method==='POST')events.push('message');return response([]);
+ },setup(w){w.URL.createObjectURL=()=> 'blob:preview';w.URL.revokeObjectURL=()=>{};w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['a'],'one.png',{type:'image/png'})]});this.dispatchEvent(new w.Event('change'));}};}});const w=dom.window;try{
+  sendGallery(w);await new Promise(r=>setTimeout(r,5));buttonByText(w,'Отмена').click();assert.equal(signal.aborted,true);w.document.getElementById('record-button').click();await new Promise(r=>setTimeout(r,10));
+  assert.deepEqual(events,['upload']);assert.ok(buttonByText(w,'Голосовое сообщение'));
  }finally{w.close();}
 });

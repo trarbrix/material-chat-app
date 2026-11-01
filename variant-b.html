@@ -413,6 +413,20 @@ html, body { height:100%; margin:0; overflow:hidden; }
 .vb-photo-controls button { border:1px solid var(--vb-border); border-radius:10px; padding:9px 12px; background:var(--vb-subtle); color:var(--vb-accent); font-weight:700; }
 .vb-photo-note { color:var(--vb-soft); font-size:11px; margin:10px 0 0; }
 
+.vb-composer-gallery,.vb-composer-record { width:34px; height:34px; border-radius:9px; background:transparent; color:var(--vb-soft); }
+.vb-composer-gallery:hover,.vb-composer-record:hover,.vb-composer-record.vb-record-holding { color:var(--vb-accent); background:var(--vb-tint); }
+.vb-composer-gallery svg,.vb-composer-record svg { width:20px; height:20px; }
+.vb-composer-record { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.vb-composer-record[data-mode=audio] .vb-record-camera,.vb-composer-record[data-mode=circle] .vb-record-mic { display:none; }
+.vb-gallery-modal { width:min(92vw,650px); max-height:90vh; max-height:90dvh; overflow:auto; padding:26px; }
+.vb-gallery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(95px,1fr)); gap:8px; max-height:48vh; overflow:auto; margin:12px 0; }
+.vb-gallery-item { position:relative; border-radius:11px; overflow:hidden; background:var(--vb-subtle); aspect-ratio:1; }
+.vb-gallery-item img,.vb-gallery-item video { display:block; width:100%; height:100%; object-fit:cover; }
+.vb-gallery-remove { position:absolute; top:5px; right:5px; border:0; width:27px; height:27px; border-radius:50%; background:rgba(25,25,35,.75); color:white; font-size:17px; }
+.vb-gallery-video { position:absolute; left:6px; bottom:6px; color:white; text-shadow:0 1px 4px #000; font-size:16px; }
+.vb-gallery-note { color:var(--vb-soft); font-size:11px; }
+@media(max-width:420px){.vb-composer{gap:2px}.vb-composer-gallery,.vb-composer-record,.vb-composer-attach,.vb-composer-emoji{width:30px}}
+
 </style>
 </head>
 <body>
@@ -457,7 +471,7 @@ html, body { height:100%; margin:0; overflow:hidden; }
     <main class="vb-main">
       <header class="vb-chat-header"><button class="vb-back-mobile" type="button" id="back-chats" aria-label="Назад к чатам">←</button><span class="vb-header-avatar vb-header-global" id="chat-avatar" style="font-size:22px">◎</span><div class="vb-header-title"><h2 id="chat-title">Global Chat</h2><span><span class="vb-online-dot"></span><span id="chat-subtitle">Общий чат · все участники</span></span></div><div class="vb-header-actions"><span class="vb-secure-note">♢ Пространство для общения</span><button class="vb-head-icon" id="chat-info-button" type="button" aria-label="Информация о чате">ⓘ</button><button class="vb-head-icon" id="chat-settings-button" type="button" aria-label="Настройки">···</button></div></header>
       <div class="vb-conversation" id="conversation"><div class="vb-conversation-inner"><div class="vb-chat-intro"><span class="vb-intro-icon" id="intro-icon" style="font-size:24px">◎</span><div><span class="vb-intro-kicker" id="intro-kicker">ДОБРО ПОЖАЛОВАТЬ</span><h2 id="intro-title">Разговор начинается здесь</h2><p id="intro-copy">Общайся, делись моментами и оставайся на связи с людьми.</p></div><span class="vb-intro-decoration">✳</span></div><div class="vb-date-divider"><span>СООБЩЕНИЯ</span></div><div id="message-list"><div class="vb-message-loading">Загружаем сообщения...</div></div><div id="scroll-end"></div></div></div>
-      <div class="vb-composer-area"><form id="message-form" class="vb-composer"><button class="vb-composer-attach" type="button" id="attach-button" title="Вложения">＋</button><textarea id="message-draft" rows="1" placeholder="Войди, чтобы написать сообщение..."></textarea><button class="vb-composer-emoji" id="emoji-button" type="button" title="Эмодзи">☺</button><button class="vb-composer-send" type="submit" aria-label="Отправить">➤</button></form><div class="vb-composer-caption"><span>♢ Твоё сообщение увидят участники чата</span><span>Enter — отправить · Shift + Enter — новая строка</span></div></div>
+      <div class="vb-composer-area"><form id="message-form" class="vb-composer"><button class="vb-composer-attach" type="button" id="attach-button" title="Вложения" aria-label="Вложения">＋</button><button class="vb-composer-gallery" type="button" id="gallery-button" title="Галерея" aria-label="Галерея"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8" cy="9" r="1.3"/><path d="m4 17 5-5 3 3 3-3 5 5"/></svg></button><textarea id="message-draft" rows="1" placeholder="Войди, чтобы написать сообщение..."></textarea><button class="vb-composer-emoji" id="emoji-button" type="button" title="Эмодзи">☺</button><button class="vb-composer-record" id="record-button" type="button" data-mode="audio" title="Запись: нажми для выбора, удерживай для записи" aria-label="Запись: нажми для выбора, удерживай для записи"><svg class="vb-record-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4m-4 0h8"/></svg><svg class="vb-record-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 5-3v10l-5-3z"/></svg></button><button class="vb-composer-send" type="submit" aria-label="Отправить">➤</button></form><div class="vb-composer-caption"><span>♢ Твоё сообщение увидят участники чата</span><span>Enter — отправить · Shift + Enter — новая строка</span></div></div>
     </main>
     <aside class="vb-detail"><div class="vb-detail-head"><span id="detail-heading">О ЧАТЕ</span><button class="vb-detail-close" id="detail-close" type="button" title="Закрыть">×</button></div><div class="vb-detail-body" id="detail-body"></div><div class="vb-detail-footer"><span class="vb-footer-dot"></span> MATERIAL CHAT</div></aside>
   </div>
@@ -648,6 +662,17 @@ Object.assign(translations, {
         'Неверный код или ошибка регистрации':['Incorrect code or registration failed','Falscher Code oder Registrierung fehlgeschlagen','Невірний код або помилка реєстрації','Code incorrect ou échec de l’inscription'],
         'Подтвердите пароль для изменения профиля':['Enter your password to edit your profile','Passwort zur Profilbearbeitung eingeben','Введіть пароль для зміни профілю','Saisissez votre mot de passe pour modifier votre profil'],
         'Продолжить':['Continue','Weiter','Продовжити','Continuer'],
+        'Галерея':['Gallery','Galerie','Галерея','Galerie'],
+        'Выберите фото и видео на устройстве':['Choose photos and videos from your device','Fotos und Videos auf dem Gerät auswählen','Оберіть фото та відео на пристрої','Choisissez des photos et vidéos sur votre appareil'],
+        'Добавить фото или видео':['Add photos or videos','Fotos oder Videos hinzufügen','Додати фото або відео','Ajouter des photos ou vidéos'],
+        'Выбрано':['Selected','Ausgewählt','Обрано','Sélectionnés'],
+        'Отправить выбранное':['Send selected','Auswahl senden','Надіслати обране','Envoyer la sélection'],
+        'Удалить из выбора':['Remove from selection','Aus Auswahl entfernen','Видалити з вибору','Retirer de la sélection'],
+        'Можно выбрать до 20 файлов':['You can select up to 20 files','Bis zu 20 Dateien auswählbar','Можна обрати до 20 файлів','Vous pouvez sélectionner jusqu’à 20 fichiers'],
+        'Выберите режим записи':['Choose recording mode','Aufnahmemodus wählen','Оберіть режим запису','Choisissez le mode d’enregistrement'],
+        'Режим выбран. Удерживайте кнопку записи в чате.':['Mode selected. Hold the record button in the chat.','Modus gewählt. Aufnahmetaste im Chat gedrückt halten.','Режим обрано. Утримуйте кнопку запису в чаті.','Mode sélectionné. Maintenez le bouton d’enregistrement dans le chat.'],
+        'Запись: нажми для выбора, удерживай для записи':['Record: tap to choose, hold to record','Aufnahme: tippen zum Wählen, gedrückt halten zum Aufnehmen','Запис: натисніть для вибору, утримуйте для запису','Enregistrement : touchez pour choisir, maintenez pour enregistrer'],
+        'Отпустили до разрешения. Нажмите «Начать запись».':['Released before permission was granted. Press Start recording.','Vor Erteilung der Berechtigung losgelassen. Aufnahme starten drücken.','Відпустили до дозволу. Натисніть «Почати запис».','Relâché avant l’autorisation. Appuyez sur Démarrer l’enregistrement.'],
         'Открыть фото':['Open photo','Foto öffnen','Відкрити фото','Ouvrir la photo'],
         'Скачать фото':['Download photo','Foto herunterladen','Завантажити фото','Télécharger la photo'],
         'Редактировать фото':['Edit photo','Foto bearbeiten','Редагувати фото','Modifier la photo'],
@@ -2316,7 +2341,7 @@ Object.assign(translations, {
     if (!['http:','https:'].includes(url.protocol) || (location.protocol === 'https:' && url.protocol !== 'https:')) throw Error(tr('Сервер не принял файл'));
     return url.href;
   }
-  async function sendMedia(file, type, targetChat, sender) {
+  async function sendMedia(file, type, targetChat, sender, signal) {
     if (!file || !file.size) throw Error(tr('Сервер не принял файл'));
     if (file.size > 20 * 1024 * 1024) throw Error(tr('Файл слишком большой (максимум 20 МБ)'));
     if (!user || user !== sender) throw Error(tr('Войди, чтобы написать сообщение'));
@@ -2324,11 +2349,11 @@ Object.assign(translations, {
     const safeName = 'media_' + Date.now() + '_' + Math.random().toString(36).slice(2,10) + '.' + extension;
     const data = new FormData(); data.append('file', file, safeName);
     toast(tr('Загрузка файла...'));
-    const upload = await fetch(API_BASE+'/upload',{method:'POST',body:data});
+    const upload = await fetch(API_BASE+'/upload',{method:'POST',body:data,...(signal?{signal}:{})});
     const res = await upload.json().catch(()=>null);
     if (!upload.ok || !res || typeof res.url !== 'string') throw Error(res?.detail || tr('Сервер не принял файл')+' (HTTP '+upload.status+')');
-    if (user !== sender) throw Error(tr('Сообщение не отправлено'));
-    const sent=await api('/messages',{method:'POST',body:JSON.stringify({chat_id:targetChat,sender,media_url:mediaUrl(res.url),msg_type:type})});
+    if (user !== sender || signal?.aborted) throw Error(tr('Сообщение не отправлено'));
+    const sent=await api('/messages',{method:'POST',body:JSON.stringify({chat_id:targetChat,sender,media_url:mediaUrl(res.url),msg_type:type}),...(signal?{signal}:{})});
     if (sent?.status === 'error') throw Error(sent.detail || tr('Сообщение не отправлено'));
     if (chatId === targetChat) { await loadMessages(true); scrollDown(); }
     toast(tr('Отправлено'));
@@ -2344,7 +2369,8 @@ Object.assign(translations, {
       catch(e) { toast(tr('Не удалось отправить')+': '+e.message); }
     };input.click();
   }
-  function recordMedia(kind) {
+  function recordMedia(kind, holdMode=false) {
+    let released=false, releaseHold=()=>{};
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { toast(tr('Запись недоступна на этом устройстве'));return; }
     const targetChat=chatId, sender=user;
     let stream=null, recorder=null, chunks=[], file=null, timer=null, previewUrl='', closed=false;
@@ -2365,6 +2391,7 @@ Object.assign(translations, {
         try {
           const acquired=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='circle'?{facingMode:'user',width:{ideal:480},height:{ideal:480}}:false});
           if(closed){acquired.getTracks().forEach(t=>t.stop());return;}stream=acquired;
+          if(holdMode && released){release();status.textContent=tr('Отпустили до разрешения. Нажмите «Начать запись».');start.disabled=false;holdMode=false;return;}
           const candidates=kind==='circle'?['video/webm;codecs=vp8,opus','video/webm','video/mp4']:['audio/webm;codecs=opus','audio/webm','audio/mp4'];
           const mime=candidates.find(t=>!MediaRecorder.isTypeSupported||MediaRecorder.isTypeSupported(t));
           recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
@@ -2381,20 +2408,110 @@ Object.assign(translations, {
           if(kind==='circle'){preview.hidden=false;preview.muted=true;preview.srcObject=stream;preview.play().catch(()=>{});}
           recorder.start();status.textContent=tr('Идёт запись (до 60 секунд)');stop.hidden=false;start.hidden=true;
           timer=setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop();},60000);
-        } catch(e) { release();status.textContent=tr('Нет доступа к микрофону или камере');start.disabled=false; }
+        } catch(e) { release();holdMode=false;status.textContent=tr('Нет доступа к микрофону или камере');start.disabled=false; }
       };
       stop.onclick=()=>{if(recorder&&recorder.state==='recording'){stop.disabled=true;recorder.stop();}};
-      send.onclick=async()=>{if(!file)return;send.disabled=true;try{await sendMedia(file,kind==='circle'?'circle':'audio',targetChat,sender);closeModal();}catch(e){toast(tr('Не удалось отправить')+': '+e.message);send.disabled=false;}};
+      releaseHold=cancelled=>{if(closed)return;released=true;if(cancelled){closeModal();return;}if(recorder&&recorder.state==='recording')stop.click();};
+      if(holdMode)start.click();
+      send.onclick=async()=>{if(!file)return;send.disabled=true;try{await sendMedia(file,kind==='circle'?'circle':'audio',targetChat,sender);if(!closed)closeModal();}catch(e){if(!closed){toast(tr('Не удалось отправить')+': '+e.message);send.disabled=false;}}};
+    });
+    return releaseHold;
+  }
+  function mediaAllowed(){if(!user){openLogin();return false;}if(chatId==='ai'){toast(tr('Файлы пока недоступны в ИИ-чате'));return false;}return true;}
+  function openGallery(){
+    if(!mediaAllowed())return;
+    const targetChat=chatId,sender=user;let items=[],closed=false,busy=false,controller=null;
+    openModal(tr('Галерея'),modal=>{
+      modal.classList.add('vb-gallery-modal');
+      const note=el('p','vb-gallery-note',tr('Выберите фото и видео на устройстве'));
+      const grid=el('div','vb-gallery-grid');
+      const info=el('p','vb-gallery-note','');
+      const actions=el('div','vb-media-actions');
+      const input=el('input');input.type='file';input.accept='image/*,video/*';input.multiple=true;input.hidden=true;
+      const choose=el('button','',tr('Добавить фото или видео'));choose.type='button';choose.onclick=()=>input.click();
+      const send=el('button','',tr('Отправить выбранное'));send.type='button';send.disabled=true;
+      const cancel=el('button','',tr('Отмена'));cancel.type='button';cancel.onclick=closeModal;
+      function paint(){
+        grid.replaceChildren();info.textContent=tr('Выбрано')+': '+items.length;send.disabled=busy||!items.length;choose.disabled=busy;
+        items.forEach(item=>{
+          const tile=el('div','vb-gallery-item'),thumb=el(item.type==='video'?'video':'img');thumb.src=item.url;
+          if(item.type==='video'){thumb.muted=true;thumb.playsInline=true;thumb.preload='metadata';}else thumb.alt=tr('Фото');
+          tile.append(thumb);
+          if(item.type==='video')tile.append(el('span','vb-gallery-video','▶'));
+          const remove=el('button','vb-gallery-remove','×');remove.type='button';remove.disabled=busy;remove.setAttribute('aria-label',tr('Удалить из выбора'));
+          remove.onclick=()=>{items=items.filter(v=>v!==item);URL.revokeObjectURL(item.url);paint();};tile.append(remove);grid.append(tile);
+        });
+      }
+      input.onchange=()=>{
+        for(const file of Array.from(input.files||[])){
+          if(items.length>=20){toast(tr('Можно выбрать до 20 файлов'));break;}
+          const type=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':'';
+          if(!type){toast(tr('Сервер не принял файл'));continue;}
+          if(!file.size||file.size>20*1024*1024){toast(tr('Файл слишком большой (максимум 20 МБ)'));continue;}
+          items.push({file,type,url:URL.createObjectURL(file)});
+        }
+        input.value='';paint();
+      };
+      send.onclick=async()=>{
+        if(busy||!items.length)return;busy=true;controller=new AbortController();paint();
+        try{
+          while(items.length&&!closed){
+            const item=items[0];await sendMedia(item.file,item.type,targetChat,sender,controller.signal);
+            if(closed)return;items.shift();URL.revokeObjectURL(item.url);paint();
+          }
+          if(!closed)closeModal();
+        }catch(e){if(!closed)toast(tr('Не удалось отправить')+': '+e.message);}
+        finally{busy=false;controller=null;if(!closed)paint();}
+      };
+      modalCleanup=()=>{closed=true;if(controller)controller.abort();items.forEach(item=>URL.revokeObjectURL(item.url));items=[];};
+      actions.append(choose,send,cancel);modal.append(note,input,grid,info,actions);paint();
     });
   }
-  $("attach-button").onclick = () => {
-    if(!user){openLogin();return;} if(chatId==='ai'){toast(tr('Файлы пока недоступны в ИИ-чате'));return;}
-    openModal(tr('Прикрепить'),modal=>{
+  let recordMode='audio', activePointer=null, holdTimer=null, holding=false, releaseRecording=null, suppressClickUntil=0;
+  const recordButton=$('record-button');
+  function chooseRecordMode(){
+    if(!mediaAllowed())return;
+    openModal(tr('Выберите режим записи'),modal=>{
       const actions=el('div','vb-media-actions');
-      [['Выберите фото или видео',()=>chooseMedia('image/*,video/*')],['Аудиофайл',()=>chooseMedia('audio/*')],['Голосовое сообщение',()=>recordMedia('audio')],['Записать кружок',()=>recordMedia('circle')]].forEach(([title,action])=>{const button=el('button','',tr(title));button.type='button';button.onclick=()=>{closeModal();action();};actions.append(button);});
-      modal.append(actions);
+      [['Голосовое сообщение','audio'],['Записать кружок','circle']].forEach(([title,mode])=>{
+        const button=el('button','',tr(title));button.type='button';button.setAttribute('aria-pressed',String(recordMode===mode));
+        button.onclick=()=>{recordMode=mode;recordButton.dataset.mode=mode;closeModal();toast(tr('Режим выбран. Удерживайте кнопку записи в чате.'));};actions.append(button);
+      });
+      const manual=el('button','',tr('Начать запись'));manual.type='button';manual.onclick=()=>{closeModal();recordMedia(recordMode);};actions.append(manual);modal.append(actions);
+    });
+  }
+  recordButton.addEventListener('contextmenu',e=>e.preventDefault());
+  recordButton.addEventListener('pointerdown',e=>{
+    if(activePointer!==null || (e.pointerType==='mouse' && e.button!==0))return;
+    activePointer=e.pointerId;holding=false;releaseRecording=null;
+    try{recordButton.setPointerCapture(e.pointerId);}catch(_){}
+    holdTimer=setTimeout(()=>{
+      holdTimer=null;holding=true;suppressClickUntil=Date.now()+1000;
+      if(mediaAllowed()){recordButton.classList.add('vb-record-holding');releaseRecording=recordMedia(recordMode,true)||null;}
+    },350);
+  });
+  function finishPointer(e,cancelled){
+    if(activePointer===null||e.pointerId!==activePointer)return;
+    if(holdTimer)clearTimeout(holdTimer);holdTimer=null;activePointer=null;
+    recordButton.classList.remove('vb-record-holding');
+    if(holding){suppressClickUntil=Date.now()+500;if(releaseRecording)releaseRecording(cancelled);}
+    holding=false;releaseRecording=null;
+  }
+  window.addEventListener('pointerup',e=>finishPointer(e,false));
+  window.addEventListener('pointercancel',e=>finishPointer(e,true));
+  window.addEventListener('blur',()=>{if(activePointer!==null)finishPointer({pointerId:activePointer},true);});
+  // A touch release can synthesize a click on the newly opened modal's scrim.
+  window.addEventListener('click',e=>{if(e.isTrusted&&e.detail!==0&&Date.now()<suppressClickUntil){e.preventDefault();e.stopImmediatePropagation();suppressClickUntil=0;}},true);
+  recordButton.onclick=e=>{if(e.detail!==0&&Date.now()<suppressClickUntil)return;chooseRecordMode();};
+  $('gallery-button').onclick=openGallery;
+  $('attach-button').onclick=()=>{
+    if(!mediaAllowed())return;
+    openModal(tr('Прикрепить'),modal=>{
+      const actions=el('div','vb-media-actions'),button=el('button','',tr('Аудиофайл'));button.type='button';
+      button.onclick=()=>{closeModal();chooseMedia('audio/*');};actions.append(button);modal.append(actions);
     });
   };
+
   $("toast-close").onclick = () => {
     $("toast").hidden = true;
   };
