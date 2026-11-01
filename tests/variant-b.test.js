@@ -22,7 +22,7 @@ function openSection(w,id){const button=w.document.querySelector(`[data-settings
 function settingsBack(w){w.document.querySelector('.vb-settings-back').click();}
 function prepareGallery(w){w.URL.createObjectURL ||= ()=> 'blob:gallery';w.URL.revokeObjectURL ||= ()=>{};w.document.getElementById('gallery-button').click();buttonByText(w,'Добавить фото или видео').click();}
 function sendGallery(w){prepareGallery(w);buttonByText(w,'Отправить выбранное').click();}
-function prepareRecording(w,label){const record=w.document.getElementById('record-button');record.click();buttonByText(w,label).click();record.click();buttonByText(w,'Начать запись').click();buttonByText(w,'Начать запись').click();}
+function prepareRecording(w,label){const record=w.document.getElementById('record-button');const mode=label==='Записать кружок'?'circle':'audio';if(record.dataset.mode!==mode)record.click();record.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',shiftKey:true,bubbles:true,cancelable:true}));buttonByText(w,'Начать запись').click();}
 test('new variant starts with the original registration dialog, and uses separate mobile panes',async()=>{
  const dom=await app();const w=dom.window;try{
   assert.equal(w.document.getElementById('auth-screen').hidden,false);
@@ -285,13 +285,13 @@ test('gallery previews multiple selected items, removes them and waits for expli
   buttonByText(w,'Отмена').click();assert.equal(revoked.length,2);assert.equal(uploads,0);
  }finally{w.close();}
 });
-test('short press chooses voice or circle and long press records until release',async()=>{
+test('short press toggles voice or circle without a menu and long press records until release',async()=>{
  let constraints=[],stops=0,recordStops=0,requests=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{requests.push({url,opt});return url.endsWith('/upload')?response({url:'https://material-caht.onrender.com/uploads/circle.webm'}):response([])},setup(w){
   Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:async c=>{constraints.push(c);return {getTracks:()=>[{stop:()=>stops++}]}}}});
   w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.HTMLMediaElement.prototype.play=()=>Promise.resolve();
   w.MediaRecorder=class {static isTypeSupported(){return true}constructor(stream,opt){this.mimeType=opt.mimeType;this.state='inactive'}start(){this.state='recording'}stop(){recordStops++;this.state='inactive';this.ondataavailable({data:new w.Blob(['video'],{type:this.mimeType})});this.onstop()}};
  }});const w=dom.window;try{
-  const record=w.document.getElementById('record-button');record.click();buttonByText(w,'Записать кружок').click();assert.equal(record.dataset.mode,'circle');
+  const record=w.document.getElementById('record-button');assert.equal(record.dataset.mode,'audio');record.click();assert.equal(record.dataset.mode,'circle');assert.equal(w.document.querySelector('.vb-modal'),null);
   const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:2,pointerType:'touch',button:0});record.dispatchEvent(down);await new Promise(r=>setTimeout(r,390));
   assert.equal(constraints.length,1);assert.equal(constraints[0].video.facingMode,'user');assert.ok(w.document.querySelector('.vb-modal'));
   const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:2,pointerType:'touch',button:0});w.dispatchEvent(up);await new Promise(r=>setTimeout(r,5));
@@ -323,6 +323,25 @@ test('closing gallery aborts the active upload and does not close a later modal'
   if(url.endsWith('/messages')&&opt.method==='POST')events.push('message');return response([]);
  },setup(w){w.URL.createObjectURL=()=> 'blob:preview';w.URL.revokeObjectURL=()=>{};w.HTMLInputElement.prototype.click=function(){if(this.type==='file'){Object.defineProperty(this,'files',{configurable:true,value:[new w.File(['a'],'one.png',{type:'image/png'})]});this.dispatchEvent(new w.Event('change'));}};}});const w=dom.window;try{
   sendGallery(w);await new Promise(r=>setTimeout(r,5));buttonByText(w,'Отмена').click();assert.equal(signal.aborted,true);w.document.getElementById('record-button').click();await new Promise(r=>setTimeout(r,10));
-  assert.deepEqual(events,['upload']);assert.ok(buttonByText(w,'Голосовое сообщение'));
+  assert.deepEqual(events,['upload']);assert.equal(w.document.getElementById('record-button').dataset.mode,'circle');assert.equal(w.document.querySelector('.vb-modal'),null);
+ }finally{w.close();}
+});
+test('record button toggles both ways without opening a menu or starting capture, including after language change',async()=>{
+ let captures=0;const dom=await app({user:'alice',setup(w){Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:async()=>{captures++;throw Error('unexpected')}}});w.MediaRecorder=class{};}});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');assert.equal(button.dataset.mode,'audio');assert.match(button.getAttribute('aria-label'),/Голосовое сообщение/);
+  button.click();assert.equal(button.dataset.mode,'circle');assert.match(button.getAttribute('aria-label'),/Видеокружок/);assert.equal(w.document.querySelector('.vb-modal'),null);
+  w.setLanguage('en');assert.match(button.getAttribute('aria-label'),/Video message/);button.click();assert.equal(button.dataset.mode,'audio');assert.match(button.getAttribute('aria-label'),/Voice message/);
+  assert.equal(w.document.querySelector('.vb-modal'),null);assert.equal(captures,0);
+ }finally{w.close();}
+});
+test('holding voice mode records and releasing does not switch the selected mode',async()=>{
+ let constraints, stopped=0;const dom=await app({user:'alice',setup(w){
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:async c=>{constraints=c;return {getTracks:()=>[{stop:()=>stopped++}]}}}});
+  w.URL.createObjectURL=()=> 'blob:voice';w.URL.revokeObjectURL=()=>{};
+  w.MediaRecorder=class {static isTypeSupported(){return true}constructor(stream,opt){this.mimeType=opt.mimeType;this.state='inactive'}start(){this.state='recording'}stop(){this.state='inactive';this.ondataavailable({data:new w.Blob(['voice'],{type:this.mimeType})});this.onstop()}};
+ }});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:8,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:8,pointerType:'touch'});w.dispatchEvent(up);await new Promise(r=>setTimeout(r,5));
+  assert.equal(constraints.video,false);assert.equal(stopped,1);assert.equal(button.dataset.mode,'audio');assert.ok(buttonByText(w,'Отправить запись'));assert.equal(buttonByText(w,'Отправить запись').hidden,false);
  }finally{w.close();}
 });
