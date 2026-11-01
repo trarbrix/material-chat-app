@@ -186,3 +186,6 @@ def install_profile_api(app, SessionLocal, engine, UserDB, tg_codes):
             return serialize(db.query(ChatProfile).filter(ChatProfile.user_id == users[0].id).first()) if len(users) == 1 else serialize(None)
         finally:
             db.close()
+
+    # Allows optional extensions to verify the same short-lived sessions.
+    return user_id_for

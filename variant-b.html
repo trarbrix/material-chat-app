@@ -398,6 +398,21 @@
 .vb-wallpaper-upload:focus-within { outline:3px solid color-mix(in srgb,var(--vb-accent) 26%,transparent); outline-offset:2px; }
 .vb-wallpaper-upload input { position:absolute; width:1px; height:1px; opacity:0; }
 
+/* The app stays in the viewport; the rails and message history scroll independently. */
+html, body { height:100%; margin:0; overflow:hidden; }
+.vb-app { height:100vh; height:100dvh; min-height:0; overflow:hidden; }
+.vb-app .vb-shell { height:100vh; height:100dvh; min-height:0; grid-template-rows:minmax(0,1fr); overflow:hidden; }
+.vb-sidebar, .vb-main, .vb-detail { height:100%; min-height:0; }
+.vb-sidebar-scroll, .vb-detail-body, .vb-conversation { min-height:0; overscroll-behavior:contain; }
+.vb-message-photo { cursor:zoom-in; }
+.vb-message-photo:focus-visible { outline:3px solid var(--vb-accent); outline-offset:3px; }
+.vb-photo-modal { width:min(92vw,850px); max-height:90vh; max-height:90dvh; overflow:auto; padding:26px; }
+.vb-photo-stage { display:flex; align-items:center; justify-content:center; min-height:180px; max-height:55vh; overflow:hidden; background:var(--vb-subtle); border-radius:12px; }
+.vb-photo-stage img, .vb-photo-stage canvas { display:block; max-width:100%; max-height:55vh; object-fit:contain; }
+.vb-photo-controls { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.vb-photo-controls button { border:1px solid var(--vb-border); border-radius:10px; padding:9px 12px; background:var(--vb-subtle); color:var(--vb-accent); font-weight:700; }
+.vb-photo-note { color:var(--vb-soft); font-size:11px; margin:10px 0 0; }
+
 </style>
 </head>
 <body>
@@ -609,6 +624,7 @@ const translations = {
   let dark = localStorage.getItem("vb-dark") === "1";
   let quick = localStorage.getItem("vb-quick-reactions") !== "0";
   let reactionsVisible = localStorage.getItem("vb-show-reactions") !== "0";
+  let reactionsUnavailable = false, reactionRevision = 0;
 
   app.style.setProperty("--vb-accent", accent);
   app.classList.toggle("vb-dark", dark);
@@ -632,6 +648,21 @@ Object.assign(translations, {
         'Неверный код или ошибка регистрации':['Incorrect code or registration failed','Falscher Code oder Registrierung fehlgeschlagen','Невірний код або помилка реєстрації','Code incorrect ou échec de l’inscription'],
         'Подтвердите пароль для изменения профиля':['Enter your password to edit your profile','Passwort zur Profilbearbeitung eingeben','Введіть пароль для зміни профілю','Saisissez votre mot de passe pour modifier votre profil'],
         'Продолжить':['Continue','Weiter','Продовжити','Continuer'],
+        'Открыть фото':['Open photo','Foto öffnen','Відкрити фото','Ouvrir la photo'],
+        'Скачать фото':['Download photo','Foto herunterladen','Завантажити фото','Télécharger la photo'],
+        'Редактировать фото':['Edit photo','Foto bearbeiten','Редагувати фото','Modifier la photo'],
+        'Повернуть влево':['Rotate left','Nach links drehen','Повернути ліворуч','Tourner à gauche'],
+        'Повернуть вправо':['Rotate right','Nach rechts drehen','Повернути праворуч','Tourner à droite'],
+        'Отразить':['Flip','Spiegeln','Віддзеркалити','Retourner'],
+        'Скачать копию':['Download a copy','Kopie herunterladen','Завантажити копію','Télécharger une copie'],
+        'Отправить копию':['Send a copy','Kopie senden','Надіслати копію','Envoyer une copie'],
+        'Изменённое фото отправляется как новое сообщение.':['The edited photo is sent as a new message.','Das bearbeitete Foto wird als neue Nachricht gesendet.','Змінене фото надсилається як нове повідомлення.','La photo modifiée est envoyée comme nouveau message.'],
+        'Не удалось открыть фото':['Could not open photo','Foto konnte nicht geöffnet werden','Не вдалося відкрити фото','Impossible d’ouvrir la photo'],
+        'Не удалось скачать фото':['Could not download photo','Foto konnte nicht heruntergeladen werden','Не вдалося завантажити фото','Impossible de télécharger la photo'],
+        'Редактирование недоступно: сервер не разрешил доступ к фото':['Editing unavailable: the server did not allow access to this photo','Bearbeitung nicht verfügbar: Der Server verweigert den Fotozugriff','Редагування недоступне: сервер не дозволив доступ до фото','Modification impossible : le serveur refuse l’accès à la photo'],
+        'Сервер реакций ещё не подключён':['The reaction server is not configured yet','Der Reaktionsserver ist noch nicht eingerichtet','Сервер реакцій ще не підключено','Le serveur de réactions n’est pas encore configuré'],
+        'Не удалось поставить реакцию':['Could not add reaction','Reaktion fehlgeschlagen','Не вдалося поставити реакцію','Impossible d’ajouter la réaction'],
+        'Добавить реакцию':['Add reaction','Reaktion hinzufügen','Додати реакцію','Ajouter une réaction'],
         'Войти заново':['Sign in again','Erneut anmelden','Увійти знову','Se reconnecter'],
         'Сессия профиля закончилась. Войдите заново.':['Profile session expired. Sign in again.','Profilsitzung abgelaufen. Bitte erneut anmelden.','Сесія профілю завершилась. Увійдіть знову.','Session du profil expirée. Reconnectez-vous.'],
         'Голосовое сообщение':['Voice message','Sprachnachricht','Голосове повідомлення','Message vocal'],
@@ -1047,6 +1078,16 @@ Object.assign(translations, {
       if(!window.document || requestedChat!==chatId)return true;
       messages=result;
       renderMessages();
+      const revision = reactionRevision;
+      if (apiMode && result.length && !reactionsUnavailable) {
+        api('/reactions?chat_id=' + encodeURIComponent(requestedChat)).then(extra => {
+          if (window.document && requestedChat === chatId && messages === result && revision === reactionRevision && extra && extra.messages && typeof extra.messages === 'object') {
+            result.forEach(m => { m.reactions = Array.isArray(extra.messages[m.id]) ? extra.messages[m.id] : []; });
+            renderMessages();
+          }
+        }).catch(err => { if (err.status === 404 || err.status === 405) reactionsUnavailable = true; });
+      }
+      if (!window.document || requestedChat !== chatId || messages !== result) return true;
       const unknown = [...new Set(messages.map((m) => m.sender))].filter(
         (name) => name !== user && !authors[name],
       );
@@ -1164,7 +1205,7 @@ Object.assign(translations, {
         bubble.append(el("small", "vb-forwarded", tr("↗ переслано")));
       if (m.edited_at) bubble.append(el("small", "vb-edited", tr("изменено")));
       if (m.media_url && !m.deleted_at) {
-        try { const url=mediaUrl(m.media_url);const type=m.type||m.msg_type||'image';const media=el(type==='audio'?'audio':(['video','circle'].includes(type)?'video':'img'));media.src=url;if(type==='image')media.alt=tr('Фото');else {media.controls=true;media.playsInline=true;if(type==='circle')media.classList.add('vb-circle-video');}bubble.append(media); } catch (_) {}
+        try { const url=mediaUrl(m.media_url);const type=m.type||m.msg_type||'image';const media=el(type==='audio'?'audio':(['video','circle'].includes(type)?'video':'img'));media.src=url;if(type==='image'){media.alt=tr('Фото');media.classList.add('vb-message-photo');media.tabIndex=0;media.setAttribute('role','button');media.setAttribute('aria-label',tr('Открыть фото'));media.onclick=e=>{e.stopPropagation();openPhotoViewer(url);};media.ondblclick=e=>e.stopPropagation();media.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();openPhotoViewer(url);}};}else {media.controls=true;media.playsInline=true;if(type==='circle')media.classList.add('vb-circle-video');}bubble.append(media); } catch (_) {}
       }
       const more = el("button", "vb-bubble-more", tr("···"));
       more.type = "button";
@@ -1185,22 +1226,17 @@ Object.assign(translations, {
       if (reactionsVisible && !m.deleted_at) {
         const reactRow = el("div", "vb-reaction-row");
         m.reactions.forEach((g) => {
-          const chip = el(
-            "button",
-            "vb-reaction-chip" +
-              (g.senders.some((s) => s.toLowerCase() === user.toLowerCase())
-                ? " vb-reacted"
-                : ""),
-            g.emoji + " " + g.count,
-          );
+          if (!g || typeof g.emoji !== 'string' || !Number.isFinite(Number(g.count))) return;
+          const selected = g.reacted === true || (Array.isArray(g.senders) && g.senders.some(s => typeof s === 'string' && s.toLowerCase() === user.toLowerCase()));
+          const chip = el("button", "vb-reaction-chip" + (selected ? " vb-reacted" : ""), g.emoji + " " + g.count);
           chip.type = "button";
-          chip.title = g.senders.join(", ");
+          chip.title = tr('Добавить реакцию');
           chip.onclick = () => react(m, g.emoji);
           reactRow.append(chip);
         });
         const add = el("button", "vb-reaction-add", tr("☺"));
         add.type = "button";
-        add.title = "Добавить реакцию";
+        add.title = tr("Добавить реакцию");
         add.onclick = (ev) => showMenu(m, ev.clientX, ev.clientY);
         reactRow.append(add);
         stack.append(reactRow);
@@ -1274,6 +1310,9 @@ Object.assign(translations, {
       openLogin();
       return;
     }
+    if (chatId === 'ai') { toast(tr('Сервер не поддерживает эту функцию')); return; }
+    const targetChat = chatId;
+    reactionRevision++;
     try {
       if (apiMode) {
         const data = await api("/reactions", {
@@ -1285,7 +1324,12 @@ Object.assign(translations, {
             emoji,
           }),
         });
-        message.reactions = data.reactions || [];
+        if (data?.status === 'error') throw Error(data.detail || tr('Не удалось поставить реакцию'));
+        if (!Array.isArray(data?.reactions)) throw Error(tr('Не удалось поставить реакцию'));
+        reactionsUnavailable = false;
+        message.reactions = data.reactions;
+        const live = targetChat === chatId && messages.find(m => m.id === message.id);
+        if (live) live.reactions = data.reactions;
       } else {
         const db = localDb();
         db.reactions = db.reactions || [];
@@ -1306,10 +1350,13 @@ Object.assign(translations, {
         saveDb(db);
         message.reactions = groupReactions(db, message.id);
       }
-      renderMessages();
+      reactionRevision++;
+      if (targetChat === chatId) renderMessages();
       closeMenu();
     } catch (err) {
-      toast("Не удалось поставить реакцию: " + err.message);
+      if (err.status === 404 || err.status === 405) { reactionsUnavailable = true; toast(tr('Сервер реакций ещё не подключён')); }
+      else if (err.status === 401) toast(tr('Сессия профиля закончилась. Войдите заново.'));
+      else toast(tr('Не удалось поставить реакцию') + ': ' + err.message);
     }
   }
   function copy(text) {
@@ -2213,6 +2260,54 @@ Object.assign(translations, {
     }
   };
   $("emoji-button").onclick = openEmoji;
+  function openPhotoViewer(url) {
+    const targetChat=chatId, sender=user;
+    openModal(tr('Фото'), modal=>{
+      modal.classList.add('vb-photo-modal');
+      const stage=el('div','vb-photo-stage'), image=el('img');
+      image.alt=tr('Фото');image.src=url;stage.append(image);modal.append(stage);
+      const controls=el('div','vb-photo-controls');modal.append(controls);
+      function button(text, handler) { const b=el('button','',tr(text));b.type='button';b.onclick=handler;controls.append(b);return b; }
+      async function downloadBlob(blob,filename) {
+        const objectUrl=URL.createObjectURL(blob), link=el('a');link.href=objectUrl;link.download=filename;
+        document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+      }
+      button('Скачать фото',async()=>{
+        try { const res=await fetch(url);if(!res.ok)throw Error();const blob=await res.blob();const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'})[blob.type]||'bin';await downloadBlob(blob,'material-chat-photo.'+ext); }
+        catch (_) { toast(tr('Не удалось скачать фото')); }
+      });
+      button('Редактировать фото',()=>{
+        const source=new Image();source.crossOrigin='anonymous';
+        source.onload=()=>{
+          if(!modal.isConnected)return;
+          let angle=0,flip=false;
+          const canvas=el('canvas'), ctx=canvas.getContext('2d');
+          if(!ctx){toast(tr('Не удалось открыть фото'));return;}
+          const width=source.naturalWidth||source.width,height=source.naturalHeight||source.height;
+          if(!width||!height){toast(tr('Не удалось открыть фото'));return;}
+          // Limit memory consumption without modifying the original image on the server.
+          const factor=Math.min(1,2048/Math.max(width,height)), w=Math.round(width*factor),h=Math.round(height*factor);
+          function draw(){const sideways=angle%180!==0;canvas.width=sideways?h:w;canvas.height=sideways?w:h;ctx.save();ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(angle*Math.PI/180);ctx.scale(flip?-1:1,1);ctx.drawImage(source,-w/2,-h/2,w,h);ctx.restore();}
+          function makeBlob(){return new Promise((resolve,reject)=>{try{canvas.toBlob(blob=>blob?resolve(blob):reject(Error()),'image/png');}catch(e){reject(e);}});}
+          stage.replaceChildren(canvas);controls.replaceChildren();draw();
+          button('Повернуть влево',()=>{angle=(angle+270)%360;draw();});
+          button('Повернуть вправо',()=>{angle=(angle+90)%360;draw();});
+          button('Отразить',()=>{flip=!flip;draw();});
+          button('Скачать копию',async()=>{try{await downloadBlob(await makeBlob(),'material-chat-edited.png');}catch(_){toast(tr('Редактирование недоступно: сервер не разрешил доступ к фото'));}});
+          button('Отправить копию',async(e)=>{
+            if(!sender){openLogin();return;}
+            const sendingButton=e.currentTarget;sendingButton.disabled=true;
+            try { const blob=await makeBlob();const file=new File([blob],'edited.png',{type:'image/png'});await sendMedia(file,'image',targetChat,sender);closeModal(); }
+            catch(err){sendingButton.disabled=false;toast(tr('Не удалось отправить')+': '+(err.message||tr('Редактирование недоступно: сервер не разрешил доступ к фото')));}
+          });
+          modal.append(el('p','vb-photo-note',tr('Изменённое фото отправляется как новое сообщение.')));
+        };
+        source.onerror=()=>toast(tr('Редактирование недоступно: сервер не разрешил доступ к фото'));
+        source.src=url;
+      });
+    });
+  }
+
   function mediaUrl(value) {
     const apiRoot = new URL(API_BASE, location.href);
     const url = new URL(value, apiRoot.origin + '/');

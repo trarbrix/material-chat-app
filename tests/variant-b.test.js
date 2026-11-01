@@ -228,3 +228,46 @@ test('homepage points to the main HTML and preserves query and fragment',()=>{
  assert.match(index,/location\.replace\('\.\/variant-b\.html'\s*\+\s*location\.search\s*\+\s*location\.hash\)/);
  assert.match(index,/<a href="\.\/variant-b\.html">/);
 });
+test('layout constrains the page and scrolls the sidebar, settings and message history independently',()=>{
+ assert.match(html,/html, body\s*\{[^}]*overflow:hidden/);
+ assert.match(html,/\.vb-app \.vb-shell\s*\{[^}]*height:100dvh[^}]*overflow:hidden/);
+ assert.match(html,/\.vb-sidebar-scroll\s*\{[^}]*overflow-y: auto/);
+ assert.match(html,/\.vb-detail-body\s*\{[^}]*overflow-y: auto/);
+ assert.match(html,/\.vb-conversation\s*\{[^}]*overflow-y: auto/);
+});
+test('clicking a photo opens viewer and can download and send an edited copy',async()=>{
+ let requests=[], downloads=[], revoked=[];const dom=await app({user:'alice',fetch:async(url,opt={})=>{
+  requests.push({url,opt});if(url.endsWith('/messages/global'))return response([{id:1,sender:'alice',text:'',media_url:'https://material-caht.onrender.com/uploads/a.png',type:'image'}]);
+  if(url.endsWith('/uploads/a.png'))return {ok:true,blob:async()=>new dom.window.Blob(['photo'],{type:'image/png'})};
+  if(url.endsWith('/upload'))return response({url:'https://material-caht.onrender.com/uploads/edited.png'});return response([]);
+ },setup(w){
+  w.URL.createObjectURL=()=> 'blob:download';w.URL.revokeObjectURL=url=>revoked.push(url);
+  w.HTMLAnchorElement.prototype.click=function(){downloads.push(this.download)};
+  w.HTMLCanvasElement.prototype.getContext=function(){return {save(){},translate(){},rotate(){},scale(){},drawImage(){},restore(){}}};
+  w.HTMLCanvasElement.prototype.toBlob=function(cb){cb(new w.Blob(['edited'],{type:'image/png'}));};
+  w.Image=class {constructor(){this.width=800;this.height=400;this.naturalWidth=800;this.naturalHeight=400}set src(v){setTimeout(()=>this.onload(),0)}};
+ }});const w=dom.window;try{
+  await new Promise(r=>setTimeout(r,20));const img=w.document.querySelector('.vb-message-photo');assert.ok(img);img.click();assert.ok(w.document.querySelector('.vb-photo-modal'));
+  buttonByText(w,'Скачать фото').click();await new Promise(r=>setTimeout(r,5));assert.deepEqual(downloads,['material-chat-photo.png']);
+  buttonByText(w,'Редактировать фото').click();await new Promise(r=>setTimeout(r,10));const canvas=w.document.querySelector('.vb-photo-stage canvas');assert.equal(canvas.width,800);assert.equal(canvas.height,400);
+  buttonByText(w,'Повернуть вправо').click();assert.equal(canvas.width,400);assert.equal(canvas.height,800);
+  buttonByText(w,'Отразить').click();buttonByText(w,'Отправить копию').click();await new Promise(r=>setTimeout(r,30));
+  assert.ok(requests.some(r=>r.url.endsWith('/upload')));const posted=requests.find(r=>r.url.endsWith('/messages')&&r.opt.method==='POST');assert.equal(JSON.parse(posted.opt.body).msg_type,'image');
+ }finally{w.close();}
+});
+test('reactions load, toggle and display without exposing sender IDs',async()=>{
+ let requests=[];let reaction={emoji:'👍',count:1,reacted:true};const dom=await app({user:'alice',session:{'profile-token':'tok','profile-token-owner':'alice'},fetch:async(url,opt={})=>{
+  requests.push({url,opt});if(url.endsWith('/messages/global'))return response([{id:1,sender:'alice',text:'hello'}]);
+  if(url.includes('/reactions?'))return response({messages:{'1':[reaction]}});
+  if(url.endsWith('/reactions')&&opt.method==='POST'){reaction={emoji:'👍',count:2,reacted:true};return response({reactions:[reaction]})}return response([]);
+ }});const w=dom.window;try{
+  await new Promise(r=>setTimeout(r,20));const chip=w.document.querySelector('.vb-reaction-chip');assert.equal(chip.textContent,'👍 1');assert.ok(chip.classList.contains('vb-reacted'));chip.click();await new Promise(r=>setTimeout(r,20));
+  assert.equal(w.document.querySelector('.vb-reaction-chip').textContent,'👍 2');const post=requests.find(r=>r.url.endsWith('/reactions')&&r.opt.method==='POST');assert.equal(post.opt.headers.Authorization,'Bearer tok');
+ }finally{w.close();}
+});
+test('missing reaction backend is reported and no local reaction is faked',async()=>{
+ const dom=await app({user:'alice',fetch:async(url,opt={})=>{if(url.endsWith('/messages/global'))return response([{id:1,sender:'alice',text:'hello'}]);if(url.includes('/reactions'))return response({},404);return response([])}});const w=dom.window;try{
+  await new Promise(r=>setTimeout(r,10));w.document.querySelector('.vb-reaction-add').click();buttonByText(w,'👍').click();await new Promise(r=>setTimeout(r,10));
+  assert.match(w.document.getElementById('toast-text').textContent,/Сервер реакций ещё не подключён/);assert.equal(w.document.querySelectorAll('.vb-reaction-chip').length,0);
+ }finally{w.close();}
+});
