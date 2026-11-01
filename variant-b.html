@@ -417,6 +417,13 @@ html, body { height:100%; margin:0; overflow:hidden; }
 .vb-composer-gallery:hover,.vb-composer-record:hover,.vb-composer-record.vb-record-holding { color:var(--vb-accent); background:var(--vb-tint); }
 .vb-composer-gallery svg,.vb-composer-record svg { width:20px; height:20px; }
 .vb-composer-record { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.vb-hold-status { display:flex; align-items:center; gap:10px; margin:0 0 8px; padding:8px 12px; border-radius:12px; background:var(--vb-tint); color:var(--vb-accent); font-size:12px; }
+.vb-hold-status[hidden] { display:none; }
+.vb-hold-status .vb-hold-indicator { width:9px; height:9px; flex:none; border-radius:50%; background:#d64b55; }
+.vb-hold-status span:nth-child(2) { flex:1; }
+.vb-hold-status button { border:0; border-radius:8px; padding:5px 9px; background:var(--vb-subtle); color:var(--vb-accent); }
+.vb-hold-status video { width:64px; height:64px; border-radius:50%; object-fit:cover; transform:scaleX(-1); }
+
 .vb-composer-record[data-mode=audio] .vb-record-camera,.vb-composer-record[data-mode=circle] .vb-record-mic { display:none; }
 .vb-gallery-modal { width:min(92vw,650px); max-height:90vh; max-height:90dvh; overflow:auto; padding:26px; }
 .vb-gallery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(95px,1fr)); gap:8px; max-height:48vh; overflow:auto; margin:12px 0; }
@@ -676,6 +683,7 @@ Object.assign(translations, {
         'Запись: нажми для выбора, удерживай для записи':['Record: tap to choose, hold to record','Aufnahme: tippen zum Wählen, gedrückt halten zum Aufnehmen','Запис: натисніть для вибору, утримуйте для запису','Enregistrement : touchez pour choisir, maintenez pour enregistrer'],
         'Отпустили до разрешения. Нажмите «Начать запись».':['Released before permission was granted. Press Start recording.','Vor Erteilung der Berechtigung losgelassen. Aufnahme starten drücken.','Відпустили до дозволу. Натисніть «Почати запис».','Relâché avant l’autorisation. Appuyez sur Démarrer l’enregistrement.'],
         'Ожидаем разрешения на микрофон или камеру…':['Waiting for microphone or camera permission…','Warten auf Mikrofon- oder Kameraberechtigung…','Очікуємо дозволу на мікрофон або камеру…','En attente de l’autorisation du microphone ou de la caméra…'],
+        'Доступ получен: микрофон или камера включены. Удерживайте кнопку для записи.':['Access granted: microphone or camera is on. Hold the button to record.','Zugriff erteilt: Mikrofon oder Kamera ist eingeschaltet. Zum Aufnehmen die Taste halten.','Доступ отримано: мікрофон або камера увімкнені. Утримуйте кнопку для запису.','Accès autorisé : microphone ou caméra activé. Maintenez le bouton pour enregistrer.'],
         'Открыть фото':['Open photo','Foto öffnen','Відкрити фото','Ouvrir la photo'],
         'Скачать фото':['Download photo','Foto herunterladen','Завантажити фото','Télécharger la photo'],
         'Редактировать фото':['Edit photo','Foto bearbeiten','Редагувати фото','Modifier la photo'],
@@ -2420,6 +2428,94 @@ Object.assign(translations, {
     });
     return releaseHold;
   }
+  // Hold-to-record does not open a menu. A permission prompt can interrupt the
+  // pointer: keep the granted stream briefly and visibly, then reuse it on hold.
+  let heldCapture=null, readyCapture=null, readyTimer=null;
+  const holdStatus=el('div','vb-hold-status');holdStatus.hidden=true;holdStatus.setAttribute('role','status');
+  const holdDot=el('span','vb-hold-indicator'),holdText=el('span'),holdVideo=el('video'),holdCancel=el('button','','');
+  holdVideo.hidden=true;holdVideo.muted=true;holdVideo.playsInline=true;holdCancel.type='button';
+  holdStatus.append(holdDot,holdText,holdVideo,holdCancel);$('message-form').before(holdStatus);
+  function showHoldStatus(message,stream,kind){
+    holdStatus.hidden=false;holdText.textContent=tr(message);holdCancel.textContent=tr('Отмена');
+    holdVideo.hidden=!(stream&&kind==='circle');
+    if(!holdVideo.hidden){try{holdVideo.srcObject=stream;const playing=holdVideo.play();if(playing?.catch)playing.catch(()=>{});}catch(_){holdVideo.hidden=true;}}else holdVideo.srcObject=null;
+  }
+  function hideHoldStatus(){holdStatus.hidden=true;holdVideo.srcObject=null;}
+  function stopCaptureStream(stream){if(stream)stream.getTracks().forEach(t=>t.stop());}
+  function clearReadyCapture(){
+    if(readyTimer)clearTimeout(readyTimer);readyTimer=null;
+    if(readyCapture)stopCaptureStream(readyCapture.stream);readyCapture=null;
+    if(!heldCapture)hideHoldStatus();
+  }
+  function previewHeldRecording(file,kind,targetChat,sender){
+    let closed=false,previewUrl='';
+    openModal(tr(kind==='circle'?'Записать кружок':'Голосовое сообщение'),modal=>{
+      const status=el('p','vb-media-status',tr('Запись готова'));
+      const preview=el(kind==='circle'?'video':'audio','vb-record-preview'+(kind==='circle'?' vb-circle-video':''));
+      preview.controls=true;preview.playsInline=true;previewUrl=URL.createObjectURL(file);preview.src=previewUrl;
+      const actions=el('div','vb-media-actions'),send=el('button','',tr('Отправить запись')),cancel=el('button','',tr('Отмена'));
+      send.type='button';cancel.type='button';cancel.onclick=closeModal;
+      send.onclick=async()=>{send.disabled=true;try{await sendMedia(file,kind==='circle'?'circle':'audio',targetChat,sender);if(!closed)closeModal();}catch(e){if(!closed){toast(tr('Не удалось отправить')+': '+e.message);send.disabled=false;}}};
+      modalCleanup=()=>{closed=true;if(previewUrl)URL.revokeObjectURL(previewUrl);};
+      actions.append(send,cancel);modal.append(status,preview,actions);
+    });
+  }
+  function startHeldRecording(kind){
+    if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){toast(tr('Запись недоступна на этом устройстве'));return null;}
+    const targetChat=chatId,sender=user;
+    if(heldCapture){
+      if(heldCapture.kind===kind&&heldCapture.sender===sender&&heldCapture.targetChat===targetChat&&!heldCapture.cancelled){heldCapture.held=true;return heldCapture.release;}
+      heldCapture.cancelled=true;heldCapture.release(true);heldCapture=null;
+    }
+    const capture={kind,targetChat,sender,held:true,cancelled:false,recorder:null,stream:null,release:null};heldCapture=capture;
+    function finish(cancelled){
+      capture.held=false;
+      if(capture.recorder&&capture.recorder.state==='recording'){
+        capture.cancelled=cancelled;capture.recorder.stop();
+      }
+    }
+    capture.release=finish;
+    async function run(){
+      try{
+        let stream;
+        if(readyCapture&&readyCapture.kind===kind&&readyCapture.sender===sender&&readyCapture.targetChat===targetChat){
+          stream=readyCapture.stream;readyCapture=null;if(readyTimer)clearTimeout(readyTimer);readyTimer=null;
+        }else{
+          clearReadyCapture();showHoldStatus('Ожидаем разрешения на микрофон или камеру…',null,kind);
+          stream=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='circle'?{facingMode:'user',width:{ideal:480},height:{ideal:480}}:false});
+        }
+        if(capture.cancelled||heldCapture!==capture||document.hidden||user!==sender||chatId!==targetChat){stopCaptureStream(stream);if(heldCapture===capture){heldCapture=null;hideHoldStatus();}return;}
+        if(!capture.held){
+          heldCapture=null;readyCapture={stream,kind,targetChat,sender};
+          showHoldStatus('Доступ получен: микрофон или камера включены. Удерживайте кнопку для записи.',stream,kind);
+          readyTimer=setTimeout(clearReadyCapture,20000);return;
+        }
+        capture.stream=stream;
+        const candidates=kind==='circle'?['video/webm;codecs=vp8,opus','video/webm','video/mp4']:['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+        const mime=candidates.find(t=>!MediaRecorder.isTypeSupported||MediaRecorder.isTypeSupported(t));
+        const recorder=capture.recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+        const chunks=[];let timer=null;
+        recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+        recorder.onerror=()=>{capture.cancelled=true;stopCaptureStream(stream);if(heldCapture===capture){heldCapture=null;hideHoldStatus();}toast(tr('Запись недоступна на этом устройстве'));};
+        recorder.onstop=()=>{
+          if(timer)clearTimeout(timer);stopCaptureStream(stream);if(heldCapture===capture){heldCapture=null;hideHoldStatus();}
+          if(capture.cancelled||user!==sender||chatId!==targetChat)return;
+          const contentType=recorder.mimeType||chunks[0]?.type||(kind==='circle'?'video/webm':'audio/webm');
+          const blob=new Blob(chunks,{type:contentType});if(!blob.size){toast(tr('Запись недоступна на этом устройстве'));return;}
+          const file=new File([blob],(kind==='circle'?'circle':'voice')+(contentType.includes('mp4')?'.mp4':'.webm'),{type:contentType});
+          previewHeldRecording(file,kind,targetChat,sender);
+        };
+        recorder.start();showHoldStatus('Идёт запись (до 60 секунд)',stream,kind);
+        timer=setTimeout(()=>{if(recorder.state==='recording')recorder.stop();},60000);
+      }catch(e){
+        stopCaptureStream(capture.stream);if(heldCapture===capture){heldCapture=null;hideHoldStatus();if(!capture.cancelled)toast(tr('Нет доступа к микрофону или камере'));}
+      }
+    }
+    run();return capture.release;
+  }
+  holdCancel.onclick=()=>{clearReadyCapture();if(heldCapture){heldCapture.cancelled=true;heldCapture.release(true);heldCapture=null;}hideHoldStatus();};
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){clearReadyCapture();if(heldCapture){heldCapture.cancelled=true;heldCapture.release(true);heldCapture=null;hideHoldStatus();}}});
+  window.addEventListener('pagehide',()=>{clearReadyCapture();if(heldCapture){heldCapture.cancelled=true;heldCapture.release(true);heldCapture=null;hideHoldStatus();}});
   function mediaAllowed(){if(!user){openLogin();return false;}if(chatId==='ai'){toast(tr('Файлы пока недоступны в ИИ-чате'));return false;}return true;}
   function openGallery(){
     if(!mediaAllowed())return;
@@ -2482,7 +2578,7 @@ Object.assign(translations, {
   }
   updateRecordButton();
   recordButton.addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&e.shiftKey&&!e.repeat){e.preventDefault();if(mediaAllowed())recordMedia(recordMode);}
+    if(e.key==='Enter'&&e.shiftKey&&!e.repeat){e.preventDefault();clearReadyCapture();if(heldCapture){heldCapture.cancelled=true;heldCapture.release(true);heldCapture=null;hideHoldStatus();}if(mediaAllowed())recordMedia(recordMode);}
   });
   recordButton.addEventListener('contextmenu',e=>e.preventDefault());
   recordButton.addEventListener('pointerdown',e=>{
@@ -2491,7 +2587,7 @@ Object.assign(translations, {
     try{recordButton.setPointerCapture(e.pointerId);}catch(_){}
     holdTimer=setTimeout(()=>{
       holdTimer=null;holding=true;suppressClickUntil=Date.now()+1000;
-      if(mediaAllowed()){recordButton.classList.add('vb-record-holding');releaseRecording=recordMedia(recordMode,true)||null;}
+      if(mediaAllowed()){recordButton.classList.add('vb-record-holding');releaseRecording=startHeldRecording(recordMode)||null;}
     },350);
   });
   function finishPointer(e,cancelled){
@@ -2506,7 +2602,7 @@ Object.assign(translations, {
   window.addEventListener('blur',()=>{if(activePointer!==null)finishPointer({pointerId:activePointer},true);});
   // A touch release can synthesize a click on the newly opened modal's scrim.
   window.addEventListener('click',e=>{if(e.isTrusted&&e.detail!==0&&Date.now()<suppressClickUntil){e.preventDefault();e.stopImmediatePropagation();suppressClickUntil=0;}},true);
-  recordButton.onclick=e=>{if(e.detail!==0&&Date.now()<suppressClickUntil)return;recordMode=recordMode==='audio'?'circle':'audio';updateRecordButton();};
+  recordButton.onclick=e=>{if(e.detail!==0&&Date.now()<suppressClickUntil)return;clearReadyCapture();if(heldCapture){heldCapture.cancelled=true;heldCapture.release(true);heldCapture=null;hideHoldStatus();}recordMode=recordMode==='audio'?'circle':'audio';updateRecordButton();};
   $('gallery-button').onclick=openGallery;
   $('attach-button').onclick=()=>{
     if(!mediaAllowed())return;

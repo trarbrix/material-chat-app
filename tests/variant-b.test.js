@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(__dirname,'..','variant-b.html'),'utf8');
 async function app({user='', fetch:mock, session={}, initial={}, setup, url='http://localhost/variant-b.html'}={}) {
   const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e));
   const dom=new JSDOM(html,{url,runScripts:'dangerously',virtualConsole:vc,beforeParse(w){
-    w.localStorage.setItem('anim','false');if(user)w.localStorage.setItem('user',user);
+    Object.defineProperty(w.document,'hidden',{value:false,configurable:true});w.localStorage.setItem('anim','false');if(user)w.localStorage.setItem('user',user);
     Object.entries(session).forEach(([k,v])=>w.sessionStorage.setItem(k,v));
     Object.entries(initial).forEach(([k,v])=>w.localStorage.setItem(k,v));if(setup)setup(w);
     w.fetch=mock|| (async()=>({ok:true,status:200,json:async()=>[]}));
@@ -293,7 +293,7 @@ test('short press toggles voice or circle without a menu and long press records 
  }});const w=dom.window;try{
   const record=w.document.getElementById('record-button');assert.equal(record.dataset.mode,'audio');record.click();assert.equal(record.dataset.mode,'circle');assert.equal(w.document.querySelector('.vb-modal'),null);
   const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:2,pointerType:'touch',button:0});record.dispatchEvent(down);await new Promise(r=>setTimeout(r,390));
-  assert.equal(constraints.length,1);assert.equal(constraints[0].video.facingMode,'user');assert.ok(w.document.querySelector('.vb-modal'));
+  assert.equal(constraints.length,1);assert.equal(constraints[0].video.facingMode,'user');assert.equal(w.document.querySelector('.vb-modal'),null);assert.equal(w.document.querySelector('.vb-hold-status').hidden,false);
   const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:2,pointerType:'touch',button:0});w.dispatchEvent(up);await new Promise(r=>setTimeout(r,5));
   assert.equal(recordStops,1);assert.equal(stops,1);assert.equal(requests.some(r=>r.url.endsWith('/upload')),false);buttonByText(w,'Отправить запись').click();await new Promise(r=>setTimeout(r,20));
   const msg=requests.find(r=>r.url.endsWith('/messages')&&r.opt.method==='POST');assert.equal(JSON.parse(msg.opt.body).msg_type,'circle');
@@ -305,7 +305,7 @@ test('releasing before permission arrives never starts a hidden recording',async
  }});const w=dom.window;try{
   const record=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:3,pointerType:'touch',button:0});record.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
   const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:3,pointerType:'touch'});w.dispatchEvent(up);resolveStream({getTracks:()=>[{stop:()=>stops++}]});await new Promise(r=>setTimeout(r,5));
-  assert.equal(started,0);assert.equal(stops,1);assert.match(w.document.querySelector('.vb-media-status').textContent,/Отпустили до разрешения/);
+  assert.equal(started,0);assert.equal(stops,0);assert.match(w.document.querySelector('.vb-hold-status').textContent,/Доступ получен/);buttonByText(w,'Отмена',w.document.querySelector('.vb-hold-status')).click();assert.equal(stops,1);
  }finally{w.close();}
 });
 test('gallery sends files sequentially to the chat captured at selection time',async()=>{
@@ -345,25 +345,50 @@ test('holding voice mode records and releasing does not switch the selected mode
   assert.equal(constraints.video,false);assert.equal(stopped,1);assert.equal(button.dataset.mode,'audio');assert.ok(buttonByText(w,'Отправить запись'));assert.equal(buttonByText(w,'Отправить запись').hidden,false);
  }finally{w.close();}
 });
-test('permission prompt blur keeps recording dialog open and lets user start after granting',async()=>{
+test('permission prompt blur keeps a granted stream ready for the next hold without another prompt',async()=>{
  let resolvePermission,calls=0,stopped=0,started=0;const dom=await app({user:'alice',setup(w){
-  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>{calls++;return calls===1?new Promise(r=>{resolvePermission=r}):Promise.resolve({getTracks:()=>[{stop:()=>stopped++}]})}}});
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>{calls++;return new Promise(r=>{resolvePermission=r})}}});
   w.MediaRecorder=class {static isTypeSupported(){return true}constructor(s,o){this.mimeType=o.mimeType;this.state='inactive'}start(){started++;this.state='recording'}stop(){this.state='inactive';this.ondataavailable({data:new w.Blob(['audio'],{type:this.mimeType})});this.onstop()}};
   w.URL.createObjectURL=()=> 'blob:audio';w.URL.revokeObjectURL=()=>{};
  }});const w=dom.window;try{
   const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:9,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
-  assert.match(w.document.querySelector('.vb-media-status').textContent,/Ожидаем разрешения/);w.dispatchEvent(new w.Event('blur'));assert.ok(w.document.querySelector('.vb-modal'));
-  resolvePermission({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));assert.equal(stopped,1);assert.equal(started,0);
-  assert.match(w.document.querySelector('.vb-media-status').textContent,/Нажмите «Начать запись»/);buttonByText(w,'Начать запись').click();await new Promise(r=>setTimeout(r,5));assert.equal(started,1);
-  buttonByText(w,'Остановить запись').click();assert.equal(stopped,2);assert.equal(buttonByText(w,'Отправить запись').hidden,false);
+  assert.match(w.document.querySelector('.vb-hold-status').textContent,/Ожидаем разрешения/);w.dispatchEvent(new w.Event('blur'));assert.equal(w.document.querySelector('.vb-modal'),null);
+  resolvePermission({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));assert.equal(stopped,0);assert.equal(started,0);
+  assert.match(w.document.querySelector('.vb-hold-status').textContent,/Доступ получен/);
+  const down2=new w.Event('pointerdown',{bubbles:true});Object.assign(down2,{pointerId:11,pointerType:'touch',button:0});button.dispatchEvent(down2);await new Promise(r=>setTimeout(r,380));assert.equal(started,1);assert.equal(calls,1);assert.equal(w.document.querySelector('.vb-modal'),null);
+  const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:11,pointerType:'touch'});w.dispatchEvent(up);await new Promise(r=>setTimeout(r,5));assert.equal(stopped,1);assert.equal(buttonByText(w,'Отправить запись').hidden,false);
  }finally{w.close();}
 });
-test('pointer cancellation during permission does not leave a hidden capture or dismiss the recovery UI',async()=>{
+test('pointer cancellation during permission never starts recording and allows cancelling the granted stream',async()=>{
  let resolvePermission,stopped=0,started=0;const dom=await app({user:'alice',setup(w){
   Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>{resolvePermission=r})}});w.MediaRecorder=class{start(){started++}};
  }});const w=dom.window;try{
   const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:10,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
-  const cancel=new w.Event('pointercancel',{bubbles:true});Object.assign(cancel,{pointerId:10,pointerType:'touch'});w.dispatchEvent(cancel);assert.ok(w.document.querySelector('.vb-modal'));
-  resolvePermission({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));assert.equal(stopped,1);assert.equal(started,0);assert.equal(buttonByText(w,'Начать запись').disabled,false);
+  const cancel=new w.Event('pointercancel',{bubbles:true});Object.assign(cancel,{pointerId:10,pointerType:'touch'});w.dispatchEvent(cancel);assert.equal(w.document.querySelector('.vb-modal'),null);
+  resolvePermission({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));assert.equal(stopped,0);assert.equal(started,0);buttonByText(w,'Отмена',w.document.querySelector('.vb-hold-status')).click();assert.equal(stopped,1);
+ }finally{w.close();}
+});
+test('pending permission after cancellation is stopped immediately and never records',async()=>{
+ let finish,stopped=0,started=0;const dom=await app({user:'alice',setup(w){Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>{finish=r})}});w.MediaRecorder=class{start(){started++}};}});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:14,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  buttonByText(w,'Отмена',w.document.querySelector('.vb-hold-status')).click();finish({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));
+  assert.equal(stopped,1);assert.equal(started,0);assert.equal(w.document.querySelector('.vb-hold-status').hidden,true);assert.equal(w.document.querySelector('.vb-modal'),null);
+ }finally{w.close();}
+});
+test('ready capture expires and is released after the waiting limit',async()=>{
+ let finish,stopped=0;const dom=await app({user:'alice',setup(w){
+  const timer=w.setTimeout.bind(w);w.setTimeout=(fn,ms,...args)=>timer(fn,ms===20000?10:ms,...args);
+  Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>{finish=r})}});w.MediaRecorder=class{};
+ }});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:15,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:15,pointerType:'touch'});w.dispatchEvent(up);finish({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,30));
+  assert.equal(stopped,1);assert.equal(w.document.querySelector('.vb-hold-status').hidden,true);
+ }finally{w.close();}
+});
+test('ready capture is released when page is hidden',async()=>{
+ let finish,stopped=0;const dom=await app({user:'alice',setup(w){Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>{finish=r})}});w.MediaRecorder=class{};}});const w=dom.window;try{
+  const button=w.document.getElementById('record-button');const down=new w.Event('pointerdown',{bubbles:true});Object.assign(down,{pointerId:16,pointerType:'touch',button:0});button.dispatchEvent(down);await new Promise(r=>setTimeout(r,380));
+  const up=new w.Event('pointerup',{bubbles:true});Object.assign(up,{pointerId:16,pointerType:'touch'});w.dispatchEvent(up);finish({getTracks:()=>[{stop:()=>stopped++}]});await new Promise(r=>setTimeout(r,5));
+  Object.defineProperty(w.document,'hidden',{value:true,configurable:true});w.document.dispatchEvent(new w.Event('visibilitychange'));assert.equal(stopped,1);assert.equal(w.document.querySelector('.vb-hold-status').hidden,true);
  }finally{w.close();}
 });
