@@ -13,7 +13,7 @@ SERVER = Path(__file__).resolve().parents[1] / 'server' / 'main_ready.py'
 
 class ReadyServerTests(unittest.TestCase):
     def setUp(self):
-        self.env = patch.dict(os.environ, {'MATERIAL_CHAT_DATA_DIR':'', 'MATERIAL_CHAT_DATABASE_URL':''})
+        self.env = patch.dict(os.environ, {'MATERIAL_CHAT_DATA_DIR':'', 'MATERIAL_CHAT_DATABASE_URL':'', 'MATERIAL_CHAT_BOT_TOKEN':'test-token'})
         self.env.start()
         self.old_cwd = os.getcwd()
         self.temp = tempfile.TemporaryDirectory()
@@ -37,6 +37,9 @@ class ReadyServerTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 200)
         return {'Authorization': 'Bearer ' + response.json()['token']}
+
+    def test_telegram_token_is_read_from_environment(self):
+        self.assertEqual(self.module.BOT_TOKEN, 'test-token')
 
     def test_profiles_and_reactions_are_shared(self):
         alice = self.register('alice')

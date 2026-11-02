@@ -6,8 +6,8 @@ from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 import time, random, requests, os, shutil
 
-# Скопируй сюда строку BOT_TOKEN из своего существующего server/main.py.
-BOT_TOKEN = "ВСТАВЬ_СТАРЫЙ_ТОКЕН"
+# Укажите прежний токен в Environment сервера; не публикуйте его в Git.
+BOT_TOKEN = os.environ.get("MATERIAL_CHAT_BOT_TOKEN", "ВСТАВЬ_СТАРЫЙ_ТОКЕН")
 
 # Без настроек используются прежние файлы SQLite и uploads, без переноса данных.
 # Для постоянного диска задайте MATERIAL_CHAT_DATA_DIR; для PostgreSQL —
