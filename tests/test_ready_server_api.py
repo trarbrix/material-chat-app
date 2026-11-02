@@ -13,6 +13,8 @@ SERVER = Path(__file__).resolve().parents[1] / 'server' / 'main_ready.py'
 
 class ReadyServerTests(unittest.TestCase):
     def setUp(self):
+        self.env = patch.dict(os.environ, {'MATERIAL_CHAT_DATA_DIR':'', 'MATERIAL_CHAT_DATABASE_URL':''})
+        self.env.start()
         self.old_cwd = os.getcwd()
         self.temp = tempfile.TemporaryDirectory()
         os.chdir(self.temp.name)
@@ -26,6 +28,7 @@ class ReadyServerTests(unittest.TestCase):
         self.module.engine.dispose()
         os.chdir(self.old_cwd)
         self.temp.cleanup()
+        self.env.stop()
 
     def register(self, tg):
         self.module.tg_codes[tg] = '1234'
@@ -50,6 +53,42 @@ class ReadyServerTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/reactions', headers=bob, json=payload).status_code, 200)
         items = self.client.get('/api/reactions?chat_id=global', headers=alice).json()['messages'][str(msg['id'])]
         self.assertEqual(items, [{'emoji':'👍', 'count':2, 'reacted':True}])
+
+    def test_persistent_directory_survives_server_restart(self):
+        data_dir = Path(self.temp.name) / 'persistent'
+        os.environ['MATERIAL_CHAT_DATA_DIR'] = str(data_dir)
+        spec = importlib.util.spec_from_file_location('ready_persistent_1', SERVER)
+        first = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(first)
+        client = TestClient(first.app)
+        first.tg_codes['alice'] = '1234'
+        r = client.post('/api/profile/register', json={'tg_username':'alice','password':'secret','code':'1234'})
+        self.assertEqual(r.status_code, 200)
+        headers = {'Authorization': 'Bearer ' + r.json()['token']}
+        self.assertEqual(client.put('/api/profile/me', headers=headers, json={'nickname':'Алиса'}).status_code, 200)
+        self.assertEqual(client.post('/api/messages', json={'chat_id':'global','sender':'alice','text':'Привет'}).status_code, 200)
+        mid = client.get('/api/messages/global').json()[0]['id']
+        self.assertEqual(client.post('/api/reactions', headers=headers, json={'chat_id':'global','message_id':str(mid),'emoji':'👍'}).status_code, 200)
+        upload = client.post('/api/upload', files={'file': ('pic.png', b'content', 'image/png')}).json()['url']
+        self.assertTrue((data_dir / 'material_chat.db').exists())
+        self.assertEqual(len(list((data_dir / 'uploads').iterdir())), 1)
+        client.close()
+        first.engine.dispose()
+        spec = importlib.util.spec_from_file_location('ready_persistent_2', SERVER)
+        second = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(second)
+        client = TestClient(second.app)
+        try:
+            login = client.post('/api/profile/session', json={'identifier':'alice','password':'secret'})
+            self.assertEqual(login.status_code, 200)
+            headers = {'Authorization': 'Bearer ' + login.json()['token']}
+            self.assertEqual(client.get('/api/profile/me', headers=headers).json()['nickname'], 'Алиса')
+            self.assertEqual(client.get('/api/messages/global').json()[0]['text'], 'Привет')
+            self.assertEqual(client.get('/api/reactions?chat_id=global', headers=headers).json()['messages'][str(mid)][0]['count'], 1)
+            self.assertEqual(client.get('/uploads/' + upload.rsplit('/',1)[-1]).content, b'content')
+        finally:
+            client.close()
+            second.engine.dispose()
 
     def test_existing_telegram_flow_and_file_upload_remain_available(self):
         with patch.object(self.module, 'get_chat_id_by_username', return_value=123), \
